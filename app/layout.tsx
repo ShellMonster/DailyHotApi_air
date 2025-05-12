@@ -48,34 +48,6 @@ export default function RootLayout({
         {/* 添加性能相关的meta标签 - 修复 http-equiv 为 httpEquiv */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-
-        {/* 添加Safari检测脚本 */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-      (function() {
-        try {
-          var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-          var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-          if (isSafari || isIOS) {
-            document.documentElement.classList.add('is-safari');
-            // 使用更温和的方式预加载，延迟执行避免阻塞渲染
-            setTimeout(function() {
-              var link = document.createElement('link');
-              link.rel = 'preconnect';
-              link.href = 'https://dailyhotpage-lac.vercel.app';
-              document.head.appendChild(link);
-            }, 300);
-          }
-        } catch(e) {
-          // 忽略错误，避免影响页面加载
-          console.error('Safari detection error:', e);
-        }
-      })();
-    `,
-          }}
-        />
-
         <script
           dangerouslySetInnerHTML={{
             __html: `

@@ -8,7 +8,6 @@ import { AlertCircle, RefreshCw, Flame } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { PlatformData, Topic } from "@/types"
 import { formatTimestamp } from "@/lib/utils"
-import { isSafari } from "@/lib/browser-utils"
 
 interface PlatformCardProps {
   platform: string
@@ -36,7 +35,6 @@ const PlatformCard = memo(function PlatformCard({
 }: PlatformCardProps) {
   const hasData = data && data.data && data.data.length > 0
   const isUnsupported = error === "此平台暂不支持" || error === "此平台暂时不可用"
-  const isSafariBrowser = isSafari() // 检测是否为Safari浏览器
 
   // 用于跟踪鼠标悬停的条目
   const [hoveredTopic, setHoveredTopic] = useState<Topic | null>(null)
@@ -165,7 +163,7 @@ const PlatformCard = memo(function PlatformCard({
     ? {
         initial: { opacity: 0 },
         animate: { opacity: 1 },
-        transition: { duration: isSafariBrowser ? 0.05 : 0.1 },
+        transition: { duration: 0.1 },
       }
     : {}
 
@@ -346,17 +344,16 @@ const PlatformCard = memo(function PlatformCard({
       <AnimatePresence>
         {hoveredTopic && (
           <motion.div
-            initial={{ opacity: 0, y: isSafariBrowser ? 0 : 5 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: isSafariBrowser ? 0 : 5 }}
-            transition={{ duration: isSafariBrowser ? 0.1 : 0.15 }}
+            exit={{ opacity: 0, y: 5 }}
+            transition={{ duration: 0.15 }}
             className="fixed z-[9999] bg-card border rounded-lg shadow-lg p-3 max-w-sm"
             style={{
               left: `${hoverPosition.x}px`,
               top: `${hoverPosition.y}px`,
               pointerEvents: "none", // 确保悬浮框不会阻止鼠标事件
               minWidth: "200px", // 确保有最小宽度
-              transform: isSafariBrowser ? "translateZ(0)" : undefined, // 在Safari上强制硬件加速
             }}
           >
             <div className="space-y-2">

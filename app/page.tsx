@@ -65,7 +65,6 @@ export default function Home() {
 
   // 添加错误处理
   useEffect(() => {
-    // 添加错误处理
     const handleError = (event: ErrorEvent) => {
       console.error("Global error caught:", event.error)
       setHasError(true)
@@ -76,25 +75,6 @@ export default function Home() {
 
     // 标记组件已加载
     setIsLoaded(true)
-
-    // 防止Safari上的重复加载
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-    if (isSafari) {
-      // 在Safari上，使用sessionStorage标记页面已加载，防止重复加载
-      const hasLoaded = sessionStorage.getItem("pageLoaded")
-      if (hasLoaded) {
-        console.log("Page already loaded, preventing reload")
-      } else {
-        sessionStorage.setItem("pageLoaded", "true")
-      }
-
-      // 监听页面可见性变化，防止在标签页切换时重新加载
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          console.log("Page became visible, not triggering reload")
-        }
-      })
-    }
 
     return () => {
       window.removeEventListener("error", handleError)
