@@ -785,155 +785,60 @@ export default function PlatformGrid() {
     // 标记为已初始化，确保此 effect 只运行一次
     setIsInitialized(true)
 
-    // 检查是否是Safari浏览器
-    const isSafariBrowser = isSafari()
+    // 显示骨架屏
+    setShowSkeletons(true)
 
-    // 如果是Safari，使用更简单的加载策略
-    if (isSafariBrowser) {
-      // 显示骨架屏
-      setShowSkeletons(true)
+    // 只加载首屏可见平台和特定平台
+    const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
 
-      // 检查是否有缓存数据
-      const cachedData = sessionStorage.getItem("platformsData")
-      const cachedTimestamp = sessionStorage.getItem("platformsDataTimestamp")
-      const now = Date.now()
-      const cacheAge = cachedTimestamp ? now - Number.parseInt(cachedTimestamp, 10) : Number.POSITIVE_INFINITY
+    // 首先发现可用平台
+    const discoverAndLoad = async () => {
+      if (!isMountedRef.current) return
 
-      // 如果有缓存的数据且缓存时间不超过5分钟，直接使用缓存数据
-      if (cachedData && cacheAge < 5 * 60 * 1000) {
-        try {
-          const parsedData = JSON.parse(cachedData)
+      try {
+        // 显示骨架屏，但设置较短的超时以确保UI不会长时间空白
+        setShowSkeletons(true)
 
-          // 使用setTimeout确保UI渲染不被阻塞
-          setTimeout(() => {
-            if (isMountedRef.current) {
-              setPlatformsData(parsedData)
-              setShowSkeletons(false)
-              setIsDiscoveringPlatforms(false)
-              console.log("Using cached platform data")
-            }
-          }, 100)
+        // 添加Safari特定的检查，避免重复加载
+        const isSafariBrowser = isSafari()
 
-          // 在后台更新数据
-          setTimeout(() => {
-            if (isMountedRef.current) {
-              discoverAvailablePlatforms().then(() => {
-                const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
-                fetchPlatformsInBatches(initialPlatforms, false)
-              })
-            }
-          }, 2000)
-
-          return
-        } catch (e) {
-          console.error("Error parsing cached data:", e)
-          // 继续正常加载流程
+        // 在Safari上添加短暂延迟，避免立即加载导致的重复刷新
+        if (isSafariBrowser) {
+          await new Promise((resolve) => setTimeout(resolve, 100))
         }
-      }
 
-      // 简化的加载流程，避免多次状态更新
-      const loadData = async () => {
-        try {
-          // 发现可用平台
-          const platforms = await discoverAvailablePlatforms()
+        await discoverAvailablePlatforms()
 
-          // 只加载首屏可见平台
+        // 然后批量加载初始平台，但不等待全部完成再显示
+        if (isMountedRef.current) {
+          // 优先加载首屏可见平台
           const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
 
-          // 批量加载平台数据
-          await fetchPlatformsInBatches(initialPlatforms)
-
-          // 更新状态
-          if (isMountedRef.current) {
+          // 不等待所有平台加载完成，而是立即开始加载
+          fetchPlatformsInBatches(initialPlatforms).catch((error) => {
+            console.error("Error loading initial platforms:", error)
+            // 确保即使出错也不会一直显示骨架屏
             setShowSkeletons(false)
-            setIsDiscoveringPlatforms(false)
-          }
-        } catch (error) {
-          console.error("Error loading data:", error)
+          })
 
-          // 确保即使出错也不会一直显示骨架屏
-          if (isMountedRef.current) {
-            setShowSkeletons(false)
-            setIsDiscoveringPlatforms(false)
-          }
-        }
-      }
-
-      // 延迟加载数据，避免闪烁
-      setTimeout(loadData, 300)
-    } else {
-      // 非Safari浏览器使用正常的加载流程
-      // 显示骨架屏
-      setShowSkeletons(true)
-
-      // 首先发现可用平台
-      const discoverAndLoad = async () => {
-        if (!isMountedRef.current) return
-
-        try {
-          // 检查是否有缓存的数据
-          const cachedData = sessionStorage.getItem("platformsData")
-          const cachedTimestamp = sessionStorage.getItem("platformsDataTimestamp")
-          const now = Date.now()
-          const cacheAge = cachedTimestamp ? now - Number.parseInt(cachedTimestamp, 10) : Number.POSITIVE_INFINITY
-
-          // 如果有缓存的数据且缓存时间不超过5分钟，直接使用缓存数据
-          if (cachedData && cacheAge < 5 * 60 * 1000) {
-            try {
-              const parsedData = JSON.parse(cachedData)
-              setPlatformsData(parsedData)
-              setShowSkeletons(false)
+          // 设置一个较短的超时，确保即使API响应慢也会在一定时间后隐藏骨架屏
+          setTimeout(() => {
+            if (isMountedRef.current && Object.keys(platformsData).length === 0) {
+              // 如果还没有数据，显示一个友好的消息而不是骨架屏
               setIsDiscoveringPlatforms(false)
-              console.log("Using cached platform data")
-
-              // 在后台更新数据
-              setTimeout(() => {
-                discoverAvailablePlatforms().then(() => {
-                  const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
-                  fetchPlatformsInBatches(initialPlatforms, false)
-                })
-              }, 2000)
-
-              return
-            } catch (e) {
-              console.error("Error parsing cached data:", e)
-              // 继续正常加载流程
-            }
-          }
-
-          await discoverAvailablePlatforms()
-
-          // 然后批量加载初始平台，但不等待全部完成再显示
-          if (isMountedRef.current) {
-            // 优先加载首屏可见平台
-            const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
-
-            // 不等待所有平台加载完成，而是立即开始加载
-            fetchPlatformsInBatches(initialPlatforms).catch((error) => {
-              console.error("Error loading initial platforms:", error)
-              // 确保即使出错也不会一直显示骨架屏
               setShowSkeletons(false)
-            })
-
-            // 设置一个较短的超时，确保即使API响应慢也会在一定时间后隐藏骨架屏
-            setTimeout(() => {
-              if (isMountedRef.current && Object.keys(platformsData).length === 0) {
-                // 如果还没有数据，显示一个友好的消息而不是骨架屏
-                setIsDiscoveringPlatforms(false)
-                setShowSkeletons(false)
-              }
-            }, 5000) // 5秒后如果还没有数据，就隐藏骨架屏
-          }
-        } catch (error) {
-          console.error("Error during initial load:", error)
-          // 确保即使出错也不会一直显示骨架屏
-          setShowSkeletons(false)
-          setIsDiscoveringPlatforms(false)
+            }
+          }, 5000) // 5秒后如果还没有数据，就隐藏骨架屏
         }
+      } catch (error) {
+        console.error("Error during initial load:", error)
+        // 确保即使出错也不会一直显示骨架屏
+        setShowSkeletons(false)
+        setIsDiscoveringPlatforms(false)
       }
-
-      discoverAndLoad()
     }
+
+    discoverAndLoad()
 
     // 设置轮询，每5分钟自动刷新数据
     // 在Safari上增加随机延迟，避免精确的5分钟导致的同步问题
@@ -957,19 +862,6 @@ export default function PlatformGrid() {
       clearInterval(intervalId)
     }
   }, [isInitialized, discoverAvailablePlatforms, fetchPlatformsInBatches, platformsData]) // 只依赖 isInitialized，确保只运行一次
-
-  // 添加一个新的useEffect来缓存平台数据
-  useEffect(() => {
-    // 只有当有数据时才缓存
-    if (Object.keys(platformsData).length > 0) {
-      try {
-        sessionStorage.setItem("platformsData", JSON.stringify(platformsData))
-        sessionStorage.setItem("platformsDataTimestamp", Date.now().toString())
-      } catch (e) {
-        console.error("Error caching platform data:", e)
-      }
-    }
-  }, [platformsData])
 
   const formatNumber = useCallback((num: number) => {
     // 确保num是数字

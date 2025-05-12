@@ -31,9 +31,6 @@ export function preventSafariReloads(): void {
     window.addEventListener("pageshow", (event) => {
       if (event.persisted) {
         console.log("Page was restored from bfcache, preventing reload")
-
-        // 添加一个类，用于CSS中防止闪烁
-        document.documentElement.classList.add("from-bfcache")
       }
     })
 
@@ -128,37 +125,4 @@ export function optimizeSafariResourceLoading(): void {
     dnsPrefetch.href = "https://dailyhotpage-lac.vercel.app"
     document.head.appendChild(dnsPrefetch)
   }, 300)
-}
-
-// 防止Safari闪烁
-export function preventSafariFlicker(): void {
-  if (!isSafari() && !isIOS()) return
-
-  // 检查是否是首次加载
-  const isFirstLoad = !sessionStorage.getItem("hasVisited")
-
-  if (isFirstLoad) {
-    // 首次加载时，添加一个类来控制过渡效果
-    document.documentElement.classList.add("first-load")
-    sessionStorage.setItem("hasVisited", "true")
-
-    // 延迟移除类，允许页面稳定渲染
-    setTimeout(() => {
-      document.documentElement.classList.remove("first-load")
-    }, 500)
-  }
-
-  // 添加CSS规则来防止闪烁
-  const style = document.createElement("style")
-  style.textContent = `
-    .first-load * {
-      animation-delay: 0.5s !important;
-      transition: none !important;
-    }
-    .from-bfcache * {
-      animation: none !important;
-      transition: none !important;
-    }
-  `
-  document.head.appendChild(style)
 }
