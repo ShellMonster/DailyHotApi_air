@@ -42,8 +42,8 @@ export default function RootLayout({
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
         {/* 预连接到API域名，减少DNS查询时间 */}
-        <link rel="preconnect" href="https://api-hot.imsyy.top" />
-        <link rel="dns-prefetch" href="https://api-hot.imsyy.top" />
+        <link rel="preconnect" href="https://dailyhotpage-lac.vercel.app" />
+        <link rel="dns-prefetch" href="https://dailyhotpage-lac.vercel.app" />
 
         {/* 添加性能相关的meta标签 - 修复 http-equiv 为 httpEquiv */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -61,7 +61,7 @@ export default function RootLayout({
       setTimeout(function() {
         var link = document.createElement('link');
         link.rel = 'preconnect';
-        link.href = 'https://api-hot.imsyy.top';
+        link.href = 'https://dailyhotpage-lac.vercel.app';
         document.head.appendChild(link);
       }, 300);
     }

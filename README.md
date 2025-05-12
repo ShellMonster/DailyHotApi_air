@@ -30,7 +30,7 @@
 
 ## 致谢
 
-本项目基于 [imsyy/DailyHotApi](https://github.com/imsyy/DailyHotApi) 项目提供的API构建而成，原项目也有对应的Web端实现，访问地址为：[hot.imsyy.top](https://hot.imsyy.top/#/)。
+本项目基于 [imsyy/DailyHotApi](https://github.com/imsyy/DailyHotApi) 项目提供的API构建而成，但并非直接使用原API，而是使用该API在Vercel上部署后的版本来构建此Web前端。原项目也有对应的Web端实现，访问地址为：[hot.imsyy.top](https://hot.imsyy.top/#/)。
 
 如果您喜欢本项目，请优先考虑给原项目 [imsyy/DailyHotApi](https://github.com/imsyy/DailyHotApi) 点个Star以表示支持，感谢！
 

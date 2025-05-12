@@ -113,7 +113,7 @@ export default function Home() {
     //   // 预连接到API域名
     //   const link = document.createElement("link")
     //   link.rel = "preconnect"
-    //   link.href = "https://api-hot.imsyy.top"
+    //   link.href = "https://dailyhotpage-lac.vercel.app"
     //   document.head.appendChild(link)
     // }
 
@@ -185,7 +185,7 @@ export default function Home() {
           </p>
           <p className="text-center text-[10px] text-muted-foreground md:text-right">
             <a
-              href="https://api-hot.imsyy.top"
+              href="https://dailyhotpage-lac.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
               className="underline underline-offset-4 hover:text-primary"

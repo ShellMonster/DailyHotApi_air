@@ -116,13 +116,13 @@ export function optimizeSafariResourceLoading(): void {
     // 预连接到API域名
     const link = document.createElement("link")
     link.rel = "preconnect"
-    link.href = "https://api-hot.imsyy.top"
+    link.href = "https://dailyhotpage-lac.vercel.app"
     document.head.appendChild(link)
 
     // 添加DNS预取
     const dnsPrefetch = document.createElement("link")
     dnsPrefetch.rel = "dns-prefetch"
-    dnsPrefetch.href = "https://api-hot.imsyy.top"
+    dnsPrefetch.href = "https://dailyhotpage-lac.vercel.app"
     document.head.appendChild(dnsPrefetch)
   }, 300)
 }
