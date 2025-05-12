@@ -58,59 +58,59 @@
 ### 开发环境
 
 1. 克隆仓库
-```bash
-git clone https://github.com/yourusername/china-hot-search.git
-cd china-hot-search
-```
+\`\`\`bash
+git clone https://github.com/ShellMonster/DailyHotApi_air.git
+cd DailyHotApi_air
+\`\`\`
 
 2. 安装依赖
-```bash
+\`\`\`bash
 npm install
 # 或
 yarn install
 # 或
 pnpm install
-```
+\`\`\`
 
 3. 启动开发服务器
-```bash
+\`\`\`bash
 npm run dev
 # 或
 yarn dev
 # 或
 pnpm dev
-```
+\`\`\`
 
 4. 在浏览器中访问 `http://localhost:3000`
 
 ### 生产环境
 
 1. 构建项目
-```bash
+\`\`\`bash
 npm run build
 # 或
 yarn build
 # 或
 pnpm build
-```
+\`\`\`
 
 2. 启动生产服务器
-```bash
+\`\`\`bash
 npm run start
 # 或
 yarn start
 # 或
 pnpm start
-```
+\`\`\`
 
 ### 部署到Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyourusername%2Fchina-hot-search)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FShellMonster%2FDailyHotApi_air)
 
 ## 项目结构
 
-```
-china-hot-search/
+\`\`\`
+DailyHotApi_air/
 ├── app/                    # Next.js App Router
 │   ├── layout.tsx          # 根布局组件
 │   ├── page.tsx            # 首页组件
@@ -144,7 +144,7 @@ china-hot-search/
 ├── tailwind.config.ts      # Tailwind CSS配置
 ├── package.json            # 项目依赖
 └── README.md               # 项目说明
-```
+\`\`\`
 
 ## 数据来源
 
@@ -178,11 +178,11 @@ china-hot-search/
 
 如有任何问题或建议，请通过以下方式联系我：
 
-- 邮箱：your.email@example.com
-- GitHub：[你的GitHub用户名](https://github.com/yourusername)
+- GitHub：[ShellMonster](https://github.com/ShellMonster)
+- 提交Issues：[项目Issues](https://github.com/ShellMonster/DailyHotApi_air/issues)
 
 ---
 
 <p align="center">
-  Made with ❤️ by Your Name
+  Made with ❤️ by ShellMonster
 </p>
