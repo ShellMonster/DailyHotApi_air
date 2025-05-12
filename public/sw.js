@@ -45,7 +45,7 @@ self.addEventListener("activate", (event) => {
 // 网络优先策略，失败时使用缓存
 self.addEventListener("fetch", (event) => {
   // 跳过非GET请求和API请求
-  if (event.request.method !== "GET" || event.request.url.includes("dailyhotpage-lac.vercel.app")) {
+  if (event.request.method !== "GET" || event.request.url.includes("api-hot.imsyy.top")) {
     return
   }
 

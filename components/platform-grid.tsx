@@ -204,7 +204,7 @@ export default function PlatformGrid() {
     try {
       // First try the /all endpoint to get a list of all platforms
       const controller = createController()
-      const allResponse = await fetch("https://dailyhotpage-lac.vercel.app/all", {
+      const allResponse = await fetch("https://api-hot.imsyy.top/all", {
         signal: controller.signal,
       }).finally(() => {
         removeController(controller)
@@ -278,7 +278,7 @@ export default function PlatformGrid() {
             return () => clearTimeout(timeoutId)
           })
 
-          const fetchPromise = fetch(`https://dailyhotpage-lac.vercel.app/${platform}`, {
+          const fetchPromise = fetch(`https://api-hot.imsyy.top/${platform}`, {
             method: "HEAD",
             signal,
           }).finally(() => {
@@ -402,7 +402,7 @@ export default function PlatformGrid() {
           const signal = controller.signal
 
           // 构建URL，如果forceRefresh为true，则添加cache=false参数
-          const url = new URL(`https://dailyhotpage-lac.vercel.app/${endpointName}`)
+          const url = new URL(`https://api-hot.imsyy.top/${endpointName}`)
           if (forceRefresh) {
             url.searchParams.append("cache", "false")
           }

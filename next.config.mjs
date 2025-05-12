@@ -9,7 +9,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ['dailyhotpage-lac.vercel.app'],
+    domains: ['api-hot.imsyy.top'],
     unoptimized: true,
   },
   // Remove the experimental optimizeCss option that requires critters
