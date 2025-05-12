@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { detectDevicePerformance, detectPerformanceFeatures } from "@/lib/performance-utils"
 import { isSafari, isIOS } from "@/lib/browser-utils"
+import { preventSafariReloads } from "@/lib/safari-utils"
 
 // 定义性能配置类型
 type PerformanceConfig = {
@@ -92,6 +93,11 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
       document.addEventListener("touchstart", () => {}, { passive: true })
       document.addEventListener("touchmove", () => {}, { passive: true })
       document.addEventListener("wheel", () => {}, { passive: true })
+    }
+
+    // 防止Safari上的重复刷新
+    if (isSafari() || isIOS()) {
+      preventSafariReloads()
     }
 
     // 根据设备性能调整CSS变量

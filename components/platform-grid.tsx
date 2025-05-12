@@ -97,6 +97,9 @@ export default function PlatformGrid() {
   // 用于跟踪活动的请求控制器
   const activeControllersRef = useRef(new Set<AbortController>())
 
+  // 用于跟踪最后一次获取数据的时间
+  const lastFetchTimeRef = useRef<number>(0)
+
   // 点击外部关闭悬浮卡片
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -556,6 +559,14 @@ export default function PlatformGrid() {
     async (platforms: string[], forceRefresh = false) => {
       if (!isMountedRef.current) return
 
+      // 防止重复加载 - 添加一个简单的防抖机制
+      const now = Date.now()
+      if (now - lastFetchTimeRef.current < 2000 && !forceRefresh) {
+        console.log("Skipping fetch, too soon since last fetch")
+        return
+      }
+      lastFetchTimeRef.current = now
+
       try {
         // 如果是初始加载，先显示骨架屏
         if (isInitialLoad) {
@@ -664,9 +675,19 @@ export default function PlatformGrid() {
         ? { rootMargin: "300px", threshold: 0.01 }
         : { rootMargin: "200px", threshold: 0.1 }
 
+      // 跟踪最后一次观察触发的时间，防止频繁触发
+      let lastObserverTriggerTime = 0
+      const OBSERVER_DEBOUNCE_TIME = isSafari() ? 1000 : 300 // Safari上使用更长的防抖时间
+
       // 创建观察器
       observerRef.current = new IntersectionObserver((entries) => {
-        // 使用防抖处理，避免短时间内多次触发
+        // 防抖处理，避免短时间内多次触发
+        const now = Date.now()
+        if (now - lastObserverTriggerTime < OBSERVER_DEBOUNCE_TIME) {
+          return
+        }
+        lastObserverTriggerTime = now
+
         const visiblePlatforms = entries
           .filter((entry) => entry.isIntersecting)
           .map((entry) => entry.target.getAttribute("data-platform"))
@@ -784,9 +805,6 @@ export default function PlatformGrid() {
     // 显示骨架屏
     setShowSkeletons(true)
 
-    // 只加载首屏可见平台和特定平台
-    const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
-
     // 首先发现可用平台
     const discoverAndLoad = async () => {
       if (!isMountedRef.current) return
@@ -794,6 +812,14 @@ export default function PlatformGrid() {
       try {
         // 显示骨架屏，但设置较短的超时以确保UI不会长时间空白
         setShowSkeletons(true)
+
+        // 添加Safari特定的检查，避免重复加载
+        const isSafariBrowser = isSafari()
+
+        // 在Safari上添加短暂延迟，避免立即加载导致的重复刷新
+        if (isSafariBrowser) {
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
 
         await discoverAvailablePlatforms()
 
@@ -829,24 +855,27 @@ export default function PlatformGrid() {
     discoverAndLoad()
 
     // 设置轮询，每5分钟自动刷新数据
+    // 在Safari上增加随机延迟，避免精确的5分钟导致的同步问题
+    const randomDelay = isSafari() ? Math.floor(Math.random() * 10000) : 0
     const intervalId = setInterval(
       () => {
         if (isMountedRef.current) {
           // 只刷新已加载的平台
           const loadedPlatforms = Object.keys(platformsData)
           if (loadedPlatforms.length > 0) {
+            console.log("Auto-refreshing platforms:", loadedPlatforms.length)
             fetchPlatformsInBatches(loadedPlatforms, true)
           }
         }
       },
-      5 * 60 * 1000,
+      5 * 60 * 1000 + randomDelay,
     )
 
     // 清理函数
     return () => {
       clearInterval(intervalId)
     }
-  }, [isInitialized, discoverAvailablePlatforms, fetchPlatformsInBatches, platformsData]) // 只依赖 isInitialized，确保只运行一次
+  }, [isInitialized, discoverAvailablePlatforms, fetchPlatformsInBatches, platformsData])
 
   const formatNumber = useCallback((num: number) => {
     // 确保num是数字
