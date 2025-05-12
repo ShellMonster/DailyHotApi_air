@@ -1,7 +1,8 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { detectDevicePerformance, getPerformanceConfig, detectPerformanceFeatures } from "@/lib/performance-utils"
+import { detectDevicePerformance, detectPerformanceFeatures } from "@/lib/performance-utils"
+import { isSafari, isIOS } from "@/lib/browser-utils"
 
 // 定义性能配置类型
 type PerformanceConfig = {
@@ -17,6 +18,59 @@ type PerformanceConfig = {
 
 // 创建上下文
 const PerformanceContext = createContext<PerformanceConfig | null>(null)
+
+// 根据设备性能调整应用配置
+export function getPerformanceConfig() {
+  const performanceLevel = detectDevicePerformance()
+  const isSafariBrowser = isSafari()
+  const isIOSDevice = isIOS()
+
+  const config = {
+    batchSize: 5,
+    batchDelay: 300,
+    animationDuration: 0.2,
+    useHeavyAnimations: true,
+    lazyLoadThreshold: 200,
+    maxConcurrentRequests: 5,
+  }
+
+  // Safari特定优化
+  if (isSafariBrowser || isIOSDevice) {
+    return {
+      ...config,
+      batchSize: 2,
+      batchDelay: 500,
+      animationDuration: 0.1,
+      useHeavyAnimations: false,
+      lazyLoadThreshold: 300,
+      maxConcurrentRequests: 2,
+    }
+  }
+
+  if (performanceLevel === "low") {
+    return {
+      ...config,
+      batchSize: 2,
+      batchDelay: 500,
+      animationDuration: 0.1,
+      useHeavyAnimations: false,
+      lazyLoadThreshold: 100,
+      maxConcurrentRequests: 2,
+    }
+  } else if (performanceLevel === "medium") {
+    return {
+      ...config,
+      batchSize: 3,
+      batchDelay: 400,
+      animationDuration: 0.15,
+      useHeavyAnimations: true,
+      lazyLoadThreshold: 150,
+      maxConcurrentRequests: 3,
+    }
+  }
+
+  return config
+}
 
 // 性能提供者组件
 export function PerformanceProvider({ children }: { children: ReactNode }) {

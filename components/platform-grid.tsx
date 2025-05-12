@@ -23,6 +23,9 @@ import { LoadingState } from "./loading-state"
 import { usePerformance } from "@/components/performance-provider"
 import { debounce, throttle } from "@/lib/performance-utils"
 
+// 导入新的浏览器工具函数
+import { isSafari, applySafariOptimizations } from "@/lib/browser-utils"
+
 // 动态导入平台卡片组件，减少初始加载时间
 const PlatformCard = dynamic(() => import("./platform-card"), {
   loading: () => <SkeletonCard />,
@@ -116,6 +119,9 @@ export default function PlatformGrid() {
   // 设置组件挂载状态
   useEffect(() => {
     isMountedRef.current = true
+
+    // 应用Safari特定优化
+    applySafariOptimizations()
 
     return () => {
       isMountedRef.current = false
@@ -556,12 +562,16 @@ export default function PlatformGrid() {
           setShowSkeletons(true)
         }
 
+        // 为Safari减少批量大小和增加延迟
+        const safariAdjustedBatchSize = isSafari() ? Math.max(1, Math.floor(BATCH_SIZE / 2)) : BATCH_SIZE
+        const safariAdjustedBatchDelay = isSafari() ? BATCH_DELAY * 1.5 : BATCH_DELAY
+
         // 将平台分成批次
-        for (let i = 0; i < platforms.length; i += BATCH_SIZE) {
+        for (let i = 0; i < platforms.length; i += safariAdjustedBatchSize) {
           // Check if still mounted before processing each batch
           if (!isMountedRef.current) break
 
-          const batch = platforms.slice(i, i + BATCH_SIZE)
+          const batch = platforms.slice(i, i + safariAdjustedBatchSize)
 
           // 并行加载每个批次中的平台，但不等待所有完成再显示
           // 使用Promise.allSettled而不是Promise.all，这样一个请求失败不会影响其他请求
@@ -596,9 +606,9 @@ export default function PlatformGrid() {
           }
 
           // 在批次之间添加延迟，避免一次性发送太多请求
-          if (i + BATCH_SIZE < platforms.length && isMountedRef.current) {
+          if (i + safariAdjustedBatchSize < platforms.length && isMountedRef.current) {
             await new Promise((resolve) => {
-              const timeoutId = setTimeout(resolve, BATCH_DELAY)
+              const timeoutId = setTimeout(resolve, safariAdjustedBatchDelay)
               // Clear timeout if unmounted
               if (!isMountedRef.current) clearTimeout(timeoutId)
             })
@@ -649,33 +659,33 @@ export default function PlatformGrid() {
   useEffect(() => {
     // 如果浏览器支持 IntersectionObserver
     if ("IntersectionObserver" in window) {
+      // 为Safari使用不同的配置
+      const observerConfig = isSafari()
+        ? { rootMargin: "300px", threshold: 0.01 }
+        : { rootMargin: "200px", threshold: 0.1 }
+
       // 创建观察器
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          // 使用防抖处理，避免短时间内多次触发
-          const visiblePlatforms = entries
-            .filter((entry) => entry.isIntersecting)
-            .map((entry) => entry.target.getAttribute("data-platform"))
-            .filter(Boolean) as string[]
+      observerRef.current = new IntersectionObserver((entries) => {
+        // 使用防抖处理，避免短时间内多次触发
+        const visiblePlatforms = entries
+          .filter((entry) => entry.isIntersecting)
+          .map((entry) => entry.target.getAttribute("data-platform"))
+          .filter(Boolean) as string[]
 
-          if (visiblePlatforms.length > 0) {
-            // 找出需要加载的平台（没有数据且没有在加载中）
-            const platformsToLoad = visiblePlatforms.filter(
-              (platform) => !platformsData[platform] && !loading[platform] && !platformErrors[platform],
-            )
+        if (visiblePlatforms.length > 0) {
+          // 找出需要加载的平台（没有数据且没有在加载中）
+          const platformsToLoad = visiblePlatforms.filter(
+            (platform) => !platformsData[platform] && !loading[platform] && !platformErrors[platform],
+          )
 
-            if (platformsToLoad.length > 0) {
-              console.log(`Loading visible platforms: ${platformsToLoad.join(", ")}`)
-              // 一次最多加载2个平台，避免并发请求过多
-              fetchPlatformsInBatches(platformsToLoad.slice(0, 2))
-            }
+          if (platformsToLoad.length > 0) {
+            console.log(`Loading visible platforms: ${platformsToLoad.join(", ")}`)
+            // 在Safari上减少并发请求数
+            const maxConcurrent = isSafari() ? 1 : 2
+            fetchPlatformsInBatches(platformsToLoad.slice(0, maxConcurrent))
           }
-        },
-        {
-          rootMargin: "200px",
-          threshold: 0.1,
-        },
-      )
+        }
+      }, observerConfig)
 
       // 为所有平台卡片添加观察
       Object.entries(platformRefs.current).forEach(([platform, el]) => {

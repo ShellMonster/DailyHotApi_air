@@ -1,7 +1,7 @@
 # 今日热榜 - 实时热点聚合平台
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/5836b587-d687-4941-867a-297c457635a0" alt="今日热榜 Logo" width="100" height="100">
+  <img src="public/icon-192.png" alt="今日热榜 Logo" width="100" height="100">
 </p>
 
 <img width="1473" alt="image" src="https://github.com/user-attachments/assets/450701d8-c786-4cf2-a79a-27ed31c79cd0" />
