@@ -58,50 +58,50 @@
 ### 开发环境
 
 1. 克隆仓库
-\`\`\`bash
+```bash
 git clone https://github.com/ShellMonster/DailyHotApi_air.git
 cd DailyHotApi_air
-\`\`\`
+```
 
 2. 安装依赖
-\`\`\`bash
+```bash
 npm install
 # 或
 yarn install
 # 或
 pnpm install
-\`\`\`
+```
 
 3. 启动开发服务器
-\`\`\`bash
+```bash
 npm run dev
 # 或
 yarn dev
 # 或
 pnpm dev
-\`\`\`
+```
 
 4. 在浏览器中访问 `http://localhost:3000`
 
 ### 生产环境
 
 1. 构建项目
-\`\`\`bash
+```bash
 npm run build
 # 或
 yarn build
 # 或
 pnpm build
-\`\`\`
+```
 
 2. 启动生产服务器
-\`\`\`bash
+```bash
 npm run start
 # 或
 yarn start
 # 或
 pnpm start
-\`\`\`
+```
 
 ### 部署到Vercel
 
@@ -109,7 +109,7 @@ pnpm start
 
 ## 项目结构
 
-\`\`\`
+```
 DailyHotApi_air/
 ├── app/                    # Next.js App Router
 │   ├── layout.tsx          # 根布局组件
@@ -144,7 +144,7 @@ DailyHotApi_air/
 ├── tailwind.config.ts      # Tailwind CSS配置
 ├── package.json            # 项目依赖
 └── README.md               # 项目说明
-\`\`\`
+```
 
 ## 数据来源
 
