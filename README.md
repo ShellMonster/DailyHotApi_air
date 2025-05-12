@@ -21,11 +21,13 @@
 
 今日热榜是一个聚合各大平台热搜的实时热点聚合平台，支持微博、知乎、百度、抖音、B站等多个平台的热搜榜单。项目采用响应式设计，同时支持PWA，可安装到桌面，离线访问，提供类原生应用体验。
 
+本项目完全由V0基于AI进行开发，项目作者是一名产品经理，并不懂代码。如有任何问题或建议，欢迎通过GitHub Issues提出，我们会尽快处理。
+
 **在线示例：** [news.geekaso.com](https://news.geekaso.com)
 
 ## 致谢
 
-本项目基于 [imsyy/DailyHotApi](https://github.com/imsyy/DailyHotApi) 项目提供的API构建而成。原项目也有对应的Web端实现，访问地址为：[hot.imsyy.top](https://hot.imsyy.top/#/)。
+本项目基于 [imsyy/DailyHotApi](https://github.com/imsyy/DailyHotApi) 项目提供的API构建而成，但并非直接使用原API，而是使用该API在Vercel上部署后的版本来构建此Web前端。原项目也有对应的Web端实现，访问地址为：[hot.imsyy.top](https://hot.imsyy.top/#/)。
 
 如果您喜欢本项目，请优先考虑给原项目 [imsyy/DailyHotApi](https://github.com/imsyy/DailyHotApi) 点个Star以表示支持，感谢！
 
