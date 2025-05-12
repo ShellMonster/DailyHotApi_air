@@ -2,7 +2,6 @@ import type React from "react"
 import "@/app/globals.css"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
-// 添加性能提供者组件
 import { PerformanceProvider } from "@/components/performance-provider"
 
 // 优化字体加载
@@ -32,7 +31,6 @@ export const metadata = {
     generator: 'v0.dev'
 }
 
-// 修改RootLayout组件，添加PerformanceProvider
 export default function RootLayout({
   children,
 }: {
@@ -49,31 +47,49 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
 
-        {/* 修改Safari检测脚本，减少闪烁 */}
+        {/* 添加Safari渲染修复脚本 - 更激进的方案 */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
 (function() {
-  // 使用sessionStorage检查是否已经运行过此脚本
-  if (sessionStorage.getItem('safari-detected')) return;
+  // 检查是否已经运行过此脚本
+  if (window.__SAFARI_FIXED__) return;
+  window.__SAFARI_FIXED__ = true;
   
   try {
     var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     
     if (isSafari || isIOS) {
+      // 1. 立即添加Safari类
       document.documentElement.classList.add('is-safari');
       
-      // 标记已检测过，避免重复执行
-      sessionStorage.setItem('safari-detected', 'true');
+      // 2. 添加内联样式以防止闪烁
+      var style = document.createElement('style');
+      style.textContent = '* { animation: none !important; transition: none !important; }';
+      document.head.appendChild(style);
       
-      // 延迟执行非关键操作
-      setTimeout(function() {
-        var link = document.createElement('link');
-        link.rel = 'preconnect';
-        link.href = 'https://dailyhotpage-lac.vercel.app';
-        document.head.appendChild(link);
-      }, 300);
+      // 3. 在DOM内容加载完成后移除样式
+      document.addEventListener('DOMContentLoaded', function() {
+        // 使用双重requestAnimationFrame确保在下一帧渲染前移除样式
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            // 移除禁用动画的样式
+            document.head.removeChild(style);
+            
+            // 添加已加载类
+            document.documentElement.classList.add('safari-loaded');
+            
+            console.log('Safari render fix applied');
+          });
+        });
+      });
+      
+      // 4. 预连接到API域名
+      var link = document.createElement('link');
+      link.rel = 'preconnect';
+      link.href = 'https://dailyhotpage-lac.vercel.app';
+      document.head.appendChild(link);
     }
   } catch(e) {
     console.error('Safari detection error:', e);

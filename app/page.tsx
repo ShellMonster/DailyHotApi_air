@@ -1,27 +1,26 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import ErrorBoundary from "@/components/error-boundary"
+import { applySafariRenderFix } from "@/lib/safari-render-fix"
+import { isSafari } from "@/lib/browser-utils"
+
 // 动态导入移动导航组件
 const MobileNav = dynamic(() => import("@/components/mobile-nav").then((mod) => ({ default: mod.MobileNav })), {
   ssr: false,
 })
 
-// 优化页面加载逻辑，确保即使主组件加载慢也能显示一些内容
-
-// 修改PlatformGrid的动态导入配置，减少加载时间:
+// 动态导入PlatformGrid组件，使用自定义加载组件
 const PlatformGrid = dynamic(
   () =>
     import("@/components/platform-grid")
       .then((mod) => {
         console.log("PlatformGrid component loaded successfully")
-        // 确保导入的是默认导出
         return { default: mod.default }
       })
       .catch((err) => {
         console.error("Error loading PlatformGrid:", err)
-        // 返回一个回退组件
         return function FallbackComponent() {
           return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -37,29 +36,47 @@ const PlatformGrid = dynamic(
         }
       }),
   {
-    loading: () => (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-        <p className="text-muted-foreground">正在加载热榜数据...</p>
-        <p className="text-xs text-muted-foreground">首次加载可能需要几秒钟</p>
-      </div>
-    ),
+    loading: () => <SafariOptimizedLoading />,
     ssr: false, // 禁用SSR，避免水合不匹配问题
   },
 )
+
+// 为Safari优化的加载组件
+function SafariOptimizedLoading() {
+  const isSafariBrowser = typeof window !== "undefined" ? isSafari() : false
+
+  // 在Safari上使用更简单的加载指示器
+  if (isSafariBrowser) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 safari-render-fix">
+        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent"></div>
+        <p className="text-muted-foreground">正在加载热榜数据...</p>
+      </div>
+    )
+  }
+
+  // 其他浏览器使用正常的加载指示器
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+      <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+      <p className="text-muted-foreground">正在加载热榜数据...</p>
+      <p className="text-xs text-muted-foreground">首次加载可能需要几秒钟</p>
+    </div>
+  )
+}
 
 export default function Home() {
   const [hasError, setHasError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
   const [isLoaded, setIsLoaded] = useState(false)
-
-  // 添加状态管理搜索对话框和关键词分析对话框
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false)
 
+  // 用于跟踪Safari渲染修复是否已应用
+  const safariFixApplied = useRef(false)
+
   // 处理刷新操作
   const handleRefresh = () => {
-    // 这里可以添加刷新逻辑，如果需要的话
     window.location.reload()
   }
 
@@ -81,12 +98,28 @@ export default function Home() {
     }
   }, [])
 
-  // 优化页面组件，提高响应速度
-
-  // 添加性能优化相关代码
+  // 应用Safari渲染修复
   useEffect(() => {
-    // 添加预加载API域名的逻辑，提前建立连接:
-    // 预加载关键资源
+    // 确保只应用一次
+    if (!safariFixApplied.current) {
+      safariFixApplied.current = true
+
+      // 应用Safari渲染修复
+      applySafariRenderFix()
+
+      // 添加页面可见性变化监听器，防止在标签页切换时重新加载
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          console.log("Page became visible, applying Safari fix again")
+          applySafariRenderFix()
+        }
+      })
+    }
+  }, [])
+
+  // 优化页面组件，提高响应速度
+  useEffect(() => {
+    // 添加预加载API域名的逻辑，提前建立连接
     const preloadResources = () => {
       // 预连接到API域名
       const link = document.createElement("link")
@@ -102,22 +135,6 @@ export default function Home() {
     }
 
     preloadResources()
-
-    // 添加性能监控
-    if (process.env.NODE_ENV === "development") {
-      console.log("Performance monitoring enabled in development mode")
-    }
-
-    // 预加载关键资源
-    // const preloadResources = () => {
-    //   // 预连接到API域名
-    //   const link = document.createElement("link")
-    //   link.rel = "preconnect"
-    //   link.href = "https://dailyhotpage-lac.vercel.app"
-    //   document.head.appendChild(link)
-    // }
-
-    // preloadResources()
 
     // 优化事件处理
     const optimizeEventHandling = () => {

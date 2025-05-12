@@ -8,14 +8,17 @@ interface SkeletonCardProps {
 }
 
 export function SkeletonCard({ index = 0 }: SkeletonCardProps) {
-  // 根据索引位置添加不同的动画延迟，创造波浪加载效果
-  // 在Safari上禁用延迟，避免闪烁
+  // 检测是否为Safari浏览器
   const isSafariBrowser = typeof window !== "undefined" ? isSafari() : false
-  const animationDelay = isSafariBrowser ? "0s" : `${(index % 10) * 0.05}s`
-  const animationClass = isSafariBrowser ? "skeleton-fade-in" : "animate-pulse"
+
+  // 在Safari上完全禁用动画
+  const animationClass = isSafariBrowser ? "safari-render-fix" : "animate-pulse"
+
+  // 在Safari上不使用动画延迟
+  const style = isSafariBrowser ? {} : { animationDelay: `${(index % 10) * 0.05}s` }
 
   return (
-    <Card className={`overflow-hidden ${animationClass}`} style={{ animationDelay }}>
+    <Card className={`overflow-hidden ${animationClass}`} style={style}>
       <CardHeader className="p-3.5 pb-2 space-y-0.5">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-1 text-sm font-medium">
