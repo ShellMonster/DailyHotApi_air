@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { isSafari } from "@/lib/browser-utils"
 
 interface SkeletonCardProps {
   index?: number
@@ -8,10 +9,13 @@ interface SkeletonCardProps {
 
 export function SkeletonCard({ index = 0 }: SkeletonCardProps) {
   // 根据索引位置添加不同的动画延迟，创造波浪加载效果
-  const animationDelay = `${(index % 10) * 0.05}s`
+  // 在Safari上禁用延迟，避免闪烁
+  const isSafariBrowser = typeof window !== "undefined" ? isSafari() : false
+  const animationDelay = isSafariBrowser ? "0s" : `${(index % 10) * 0.05}s`
+  const animationClass = isSafariBrowser ? "skeleton-fade-in" : "animate-pulse"
 
   return (
-    <Card className="overflow-hidden animate-pulse" style={{ animationDelay }}>
+    <Card className={`overflow-hidden ${animationClass}`} style={{ animationDelay }}>
       <CardHeader className="p-3.5 pb-2 space-y-0.5">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-1 text-sm font-medium">

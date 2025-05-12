@@ -45,19 +45,29 @@ export default function RootLayout({
         <link rel="preconnect" href="https://dailyhotpage-lac.vercel.app" />
         <link rel="dns-prefetch" href="https://dailyhotpage-lac.vercel.app" />
 
-        {/* 添加性能相关的meta标签 - 修复 http-equiv 为 httpEquiv */}
+        {/* 添加性能相关的meta标签 */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+
+        {/* 修改Safari检测脚本，减少闪烁 */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
 (function() {
+  // 使用sessionStorage检查是否已经运行过此脚本
+  if (sessionStorage.getItem('safari-detected')) return;
+  
   try {
     var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
     if (isSafari || isIOS) {
       document.documentElement.classList.add('is-safari');
-      // 使用更温和的方式预加载，延迟执行避免阻塞渲染
+      
+      // 标记已检测过，避免重复执行
+      sessionStorage.setItem('safari-detected', 'true');
+      
+      // 延迟执行非关键操作
       setTimeout(function() {
         var link = document.createElement('link');
         link.rel = 'preconnect';
@@ -66,7 +76,6 @@ export default function RootLayout({
       }, 300);
     }
   } catch(e) {
-    // 忽略错误，避免影响页面加载
     console.error('Safari detection error:', e);
   }
 })();

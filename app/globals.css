@@ -275,6 +275,20 @@ a,
   --animation-duration: 0.15s;
 }
 
+/* 防止首次加载闪烁 */
+.first-load .animate-fade-in,
+.first-load .animate-fade-in-up,
+.first-load .animate-pulse,
+.first-load .stagger-animation > * {
+  animation: none !important;
+}
+
+/* 页面稳定后再启用动画 */
+.is-safari .stagger-animation > * {
+  animation-delay: 0s !important;
+}
+
+/* 优化Safari上的动画 */
 .is-safari .animate-pulse {
   animation-duration: 3s;
 }
@@ -288,13 +302,48 @@ a,
   transform: translateZ(0);
 }
 
+/* 强制硬件加速 */
 .is-safari .card,
 .is-safari .motion-card,
-.is-safari .platform-card {
+.is-safari .platform-card,
+.is-safari .hover-preview {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
   will-change: transform, opacity;
+}
+
+/* 减少闪烁的关键元素 */
+.platform-grid,
+.stagger-animation {
+  contain: layout style;
+  will-change: contents;
+}
+
+/* 防止骨架屏闪烁 */
+.skeleton-fade-in {
+  opacity: 0;
+  animation: skeleton-fade 0.5s ease-in forwards;
+}
+
+@keyframes skeleton-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 优化Safari上的渲染 */
+@media not all and (min-resolution: 0.001dpcm) {
+  @supports (-webkit-appearance: none) {
+    .animate-fade-in,
+    .animate-fade-in-up {
+      -webkit-backface-visibility: hidden;
+      -webkit-transform: translateZ(0) scale(1.0, 1.0);
+    }
+  }
 }
 
 .is-safari .scrollbar-thin {

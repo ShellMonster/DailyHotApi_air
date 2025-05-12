@@ -788,19 +788,43 @@ export default function PlatformGrid() {
     // 显示骨架屏
     setShowSkeletons(true)
 
-    // 只加载首屏可见平台和特定平台
-    const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
-
     // 首先发现可用平台
     const discoverAndLoad = async () => {
       if (!isMountedRef.current) return
 
       try {
-        // 显示骨架屏，但设置较短的超时以确保UI不会长时间空白
-        setShowSkeletons(true)
-
-        // 添加Safari特定的检查，避免重复加载
+        // 检查是否是Safari浏览器
         const isSafariBrowser = isSafari()
+
+        // 检查是否已经有缓存的数据
+        const cachedData = sessionStorage.getItem("platformsData")
+        const cachedTimestamp = sessionStorage.getItem("platformsDataTimestamp")
+        const now = Date.now()
+        const cacheAge = cachedTimestamp ? now - Number.parseInt(cachedTimestamp, 10) : Number.POSITIVE_INFINITY
+
+        // 如果有缓存的数据且缓存时间不超过5分钟，直接使用缓存数据
+        if (cachedData && cacheAge < 5 * 60 * 1000) {
+          try {
+            const parsedData = JSON.parse(cachedData)
+            setPlatformsData(parsedData)
+            setShowSkeletons(false)
+            setIsDiscoveringPlatforms(false)
+            console.log("Using cached platform data")
+
+            // 在后台更新数据
+            setTimeout(() => {
+              discoverAvailablePlatforms().then(() => {
+                const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
+                fetchPlatformsInBatches(initialPlatforms, false)
+              })
+            }, 2000)
+
+            return
+          } catch (e) {
+            console.error("Error parsing cached data:", e)
+            // 继续正常加载流程
+          }
+        }
 
         // 在Safari上添加短暂延迟，避免立即加载导致的重复刷新
         if (isSafariBrowser) {
@@ -862,6 +886,19 @@ export default function PlatformGrid() {
       clearInterval(intervalId)
     }
   }, [isInitialized, discoverAvailablePlatforms, fetchPlatformsInBatches, platformsData]) // 只依赖 isInitialized，确保只运行一次
+
+  // 添加一个新的useEffect来缓存平台数据
+  useEffect(() => {
+    // 只有当有数据时才缓存
+    if (Object.keys(platformsData).length > 0) {
+      try {
+        sessionStorage.setItem("platformsData", JSON.stringify(platformsData))
+        sessionStorage.setItem("platformsDataTimestamp", Date.now().toString())
+      } catch (e) {
+        console.error("Error caching platform data:", e)
+      }
+    }
+  }, [platformsData])
 
   const formatNumber = useCallback((num: number) => {
     // 确保num是数字

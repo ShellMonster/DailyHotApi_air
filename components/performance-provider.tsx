@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { detectDevicePerformance, getPerformanceConfig, detectPerformanceFeatures } from "@/lib/performance-utils"
+import { preventSafariReloads, preventSafariFlicker } from "@/lib/safari-utils"
+import { isSafari } from "@/lib/browser-utils"
 
 // 定义性能配置类型
 type PerformanceConfig = {
@@ -13,6 +15,7 @@ type PerformanceConfig = {
   maxConcurrentRequests: number
   devicePerformance: "low" | "medium" | "high"
   features: Record<string, boolean>
+  isSafari: boolean
 }
 
 // 创建上下文
@@ -24,6 +27,7 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
     ...getPerformanceConfig(),
     devicePerformance: "medium",
     features: {},
+    isSafari: false,
   })
 
   useEffect(() => {
@@ -31,6 +35,7 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
     const devicePerformance = detectDevicePerformance()
     const performanceConfig = getPerformanceConfig()
     const features = detectPerformanceFeatures()
+    const isSafariBrowser = isSafari()
 
     // 应用性能优化
     if (features.passiveEvents) {
@@ -48,13 +53,35 @@ export function PerformanceProvider({ children }: { children: ReactNode }) {
       document.documentElement.classList.add("reduce-motion")
     }
 
-    setConfig({
-      ...performanceConfig,
-      devicePerformance,
-      features,
-    })
+    // 防止Safari重复加载和闪烁
+    if (isSafariBrowser) {
+      preventSafariReloads()
+      preventSafariFlicker()
 
-    console.log(`Device performance: ${devicePerformance}`, performanceConfig)
+      // 为Safari添加特殊处理
+      const safariConfig = {
+        ...performanceConfig,
+        batchSize: Math.max(1, Math.floor(performanceConfig.batchSize / 2)),
+        batchDelay: performanceConfig.batchDelay * 1.5,
+        animationDuration: 0.1,
+      }
+
+      setConfig({
+        ...safariConfig,
+        devicePerformance,
+        features,
+        isSafari: true,
+      })
+    } else {
+      setConfig({
+        ...performanceConfig,
+        devicePerformance,
+        features,
+        isSafari: false,
+      })
+    }
+
+    console.log(`Device performance: ${devicePerformance}`, `Safari: ${isSafariBrowser}`, performanceConfig)
 
     return () => {
       // 清理事件监听器
