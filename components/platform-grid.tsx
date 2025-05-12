@@ -441,7 +441,22 @@ export default function PlatformGrid() {
           // 检查响应是否具有预期的结构
           if (data && typeof data === "object" && Array.isArray(data.data)) {
             if (isMountedRef.current) {
-              setPlatformsData((prev) => ({ ...prev, [platform]: data }))
+              // 立即更新数据，不等待其他平台
+              setPlatformsData((prev) => {
+                const newData = { ...prev, [platform]: data }
+
+                // 如果已经有一些数据了，可以考虑隐藏骨架屏
+                if (Object.keys(newData).length >= BATCH_SIZE) {
+                  // 使用setTimeout确保状态更新不会阻塞UI渲染
+                  setTimeout(() => {
+                    if (isMountedRef.current) {
+                      setShowSkeletons(false)
+                    }
+                  }, 0)
+                }
+
+                return newData
+              })
 
               // 清除之前的错误
               setPlatformErrors((prev) => {
@@ -454,6 +469,9 @@ export default function PlatformGrid() {
               if (!availablePlatforms.includes(endpointName)) {
                 setAvailablePlatforms((prev) => [...prev, endpointName])
               }
+
+              // 立即标记为加载完成
+              setLoading((prev) => ({ ...prev, [platform]: false }))
             }
 
             succeeded = true
@@ -533,6 +551,11 @@ export default function PlatformGrid() {
       if (!isMountedRef.current) return
 
       try {
+        // 如果是初始加载，先显示骨架屏
+        if (isInitialLoad) {
+          setShowSkeletons(true)
+        }
+
         // 将平台分成批次
         for (let i = 0; i < platforms.length; i += BATCH_SIZE) {
           // Check if still mounted before processing each batch
@@ -540,16 +563,37 @@ export default function PlatformGrid() {
 
           const batch = platforms.slice(i, i + BATCH_SIZE)
 
-          // 并行加载每个批次中的平台
-          await Promise.all(
-            batch.map((platform) => {
-              // Only fetch if still mounted
-              if (isMountedRef.current) {
-                return fetchPlatformData(platform, 0, forceRefresh)
-              }
-              return Promise.resolve()
-            }),
-          )
+          // 并行加载每个批次中的平台，但不等待所有完成再显示
+          // 使用Promise.allSettled而不是Promise.all，这样一个请求失败不会影响其他请求
+          const batchPromises = batch.map((platform) => {
+            // Only fetch if still mounted
+            if (isMountedRef.current) {
+              return fetchPlatformData(platform, 0, forceRefresh)
+                .then(() => {
+                  // 每个平台数据加载完成后，立即隐藏该平台的骨架屏
+                  if (isMountedRef.current && platformsData[platform]) {
+                    // 如果已经有数据了，可以考虑隐藏骨架屏
+                    if (Object.keys(platformsData).length > batch.length) {
+                      setShowSkeletons(false)
+                    }
+                  }
+                  return { platform, success: true }
+                })
+                .catch((error) => {
+                  console.error(`Error loading platform ${platform}:`, error)
+                  return { platform, success: false, error }
+                })
+            }
+            return Promise.resolve({ platform, success: false, skipped: true })
+          })
+
+          // 等待当前批次的请求完成或失败
+          await Promise.allSettled(batchPromises)
+
+          // 如果至少有一些数据已加载，就隐藏骨架屏
+          if (isMountedRef.current && Object.keys(platformsData).length > 0) {
+            setShowSkeletons(false)
+          }
 
           // 在批次之间添加延迟，避免一次性发送太多请求
           if (i + BATCH_SIZE < platforms.length && isMountedRef.current) {
@@ -565,16 +609,12 @@ export default function PlatformGrid() {
         if (isMountedRef.current) {
           setIsInitialLoad(false)
 
-          // 在所有数据加载完成后，延迟一段时间再隐藏骨架屏，让用户有时间看到内容
-          setTimeout(() => {
-            if (isMountedRef.current) {
-              setShowSkeletons(false)
-            }
-          }, 300)
+          // 确保所有数据加载完成后，骨架屏一定被隐藏
+          setShowSkeletons(false)
         }
       }
     },
-    [fetchPlatformData],
+    [fetchPlatformData, platformsData, isInitialLoad],
   )
 
   // 修改 fetchAllPlatforms 函数，添加 forceRefresh 参数
@@ -741,17 +781,38 @@ export default function PlatformGrid() {
     const discoverAndLoad = async () => {
       if (!isMountedRef.current) return
 
-      await discoverAvailablePlatforms()
+      try {
+        // 显示骨架屏，但设置较短的超时以确保UI不会长时间空白
+        setShowSkeletons(true)
 
-      // 然后批量加载初始平台
-      if (isMountedRef.current) {
-        await fetchPlatformsInBatches(initialPlatforms)
+        await discoverAvailablePlatforms()
 
-        // 设置一个延迟，让交叉观察器有时间设置好
-        setTimeout(() => {
-          setIsDiscoveringPlatforms(false)
-          console.log("Initial platforms loaded, ready for scroll loading")
-        }, 500)
+        // 然后批量加载初始平台，但不等待全部完成再显示
+        if (isMountedRef.current) {
+          // 优先加载首屏可见平台
+          const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
+
+          // 不等待所有平台加载完成，而是立即开始加载
+          fetchPlatformsInBatches(initialPlatforms).catch((error) => {
+            console.error("Error loading initial platforms:", error)
+            // 确保即使出错也不会一直显示骨架屏
+            setShowSkeletons(false)
+          })
+
+          // 设置一个较短的超时，确保即使API响应慢也会在一定时间后隐藏骨架屏
+          setTimeout(() => {
+            if (isMountedRef.current && Object.keys(platformsData).length === 0) {
+              // 如果还没有数据，显示一个友好的消息而不是骨架屏
+              setIsDiscoveringPlatforms(false)
+              setShowSkeletons(false)
+            }
+          }, 5000) // 5秒后如果还没有数据，就隐藏骨架屏
+        }
+      } catch (error) {
+        console.error("Error during initial load:", error)
+        // 确保即使出错也不会一直显示骨架屏
+        setShowSkeletons(false)
+        setIsDiscoveringPlatforms(false)
       }
     }
 

@@ -8,7 +8,9 @@ const MobileNav = dynamic(() => import("@/components/mobile-nav").then((mod) => 
   ssr: false,
 })
 
-// 动态导入主组件，减少初始加载时间
+// 优化页面加载逻辑，确保即使主组件加载慢也能显示一些内容
+
+// 修改PlatformGrid的动态导入配置，减少加载时间:
 const PlatformGrid = dynamic(
   () =>
     import("@/components/platform-grid")
@@ -38,7 +40,8 @@ const PlatformGrid = dynamic(
     loading: () => (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-        <p className="text-muted-foreground">加载中...</p>
+        <p className="text-muted-foreground">正在加载热榜数据...</p>
+        <p className="text-xs text-muted-foreground">首次加载可能需要几秒钟</p>
       </div>
     ),
     ssr: false, // 禁用SSR，避免水合不匹配问题
@@ -82,21 +85,39 @@ export default function Home() {
 
   // 添加性能优化相关代码
   useEffect(() => {
+    // 添加预加载API域名的逻辑，提前建立连接:
+    // 预加载关键资源
+    const preloadResources = () => {
+      // 预连接到API域名
+      const link = document.createElement("link")
+      link.rel = "preconnect"
+      link.href = "https://api-hot.imsyy.top"
+      document.head.appendChild(link)
+
+      // 添加DNS预取
+      const dnsPrefetch = document.createElement("link")
+      dnsPrefetch.rel = "dns-prefetch"
+      dnsPrefetch.href = "https://api-hot.imsyy.top"
+      document.head.appendChild(dnsPrefetch)
+    }
+
+    preloadResources()
+
     // 添加性能监控
     if (process.env.NODE_ENV === "development") {
       console.log("Performance monitoring enabled in development mode")
     }
 
     // 预加载关键资源
-    const preloadResources = () => {
-      // 预连接到API域名
-      const link = document.createElement("link")
-      link.rel = "preconnect"
-      link.href = "https://dailyhotpage-lac.vercel.app"
-      document.head.appendChild(link)
-    }
+    // const preloadResources = () => {
+    //   // 预连接到API域名
+    //   const link = document.createElement("link")
+    //   link.rel = "preconnect"
+    //   link.href = "https://dailyhotpage-lac.vercel.app"
+    //   document.head.appendChild(link)
+    // }
 
-    preloadResources()
+    // preloadResources()
 
     // 优化事件处理
     const optimizeEventHandling = () => {
