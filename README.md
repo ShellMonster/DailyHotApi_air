@@ -4,6 +4,9 @@
   <img src="public/icon-192.png" alt="今日热榜 Logo" width="100" height="100">
 </p>
 
+<img width="1473" alt="image" src="https://github.com/user-attachments/assets/450701d8-c786-4cf2-a79a-27ed31c79cd0" />
+</br></br>
+
 <p align="center">
   <strong>一站式热搜聚合平台，实时掌握全网热点</strong>
 </p>
