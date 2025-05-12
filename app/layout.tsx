@@ -51,16 +51,26 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js').then(function(registration) {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, function(err) {
-          console.log('ServiceWorker registration failed: ', err);
-        });
-      });
+(function() {
+  try {
+    var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isSafari || isIOS) {
+      document.documentElement.classList.add('is-safari');
+      // 使用更温和的方式预加载，延迟执行避免阻塞渲染
+      setTimeout(function() {
+        var link = document.createElement('link');
+        link.rel = 'preconnect';
+        link.href = 'https://dailyhotpage-lac.vercel.app';
+        document.head.appendChild(link);
+      }, 300);
     }
-  `,
+  } catch(e) {
+    // 忽略错误，避免影响页面加载
+    console.error('Safari detection error:', e);
+  }
+})();
+`,
           }}
         />
       </head>
