@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +23,9 @@ import { debounce, throttle } from "@/lib/performance-utils"
 
 // 导入Safari检测和优化函数
 import { isSafari, applySafariOptimizations } from "@/lib/browser-utils"
+
+// 导入
+import { calculateHoverPosition, getHoverDelay } from "@/lib/hover-utils"
 
 // 动态导入平台卡片组件，减少初始加载时间
 const PlatformCard = dynamic(() => import("./platform-card"), {
@@ -915,9 +916,7 @@ export default function PlatformGrid() {
   )
 
   // 修改处理悬浮预览的函数，优化悬浮预览框的位置计算
-
-  // 处理悬浮预览
-  const handleTopicHover = useCallback((topic: Topic, event: React.MouseEvent) => {
+  const handleTopicHover = useCallback((topic: Topic, element: HTMLElement) => {
     // 清除之前的定时器
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
@@ -928,60 +927,14 @@ export default function PlatformGrid() {
       // 如果标题为空，不显示预览
       if (!topic.title) return
 
-      // 确保 event.currentTarget 存在
-      if (!event.currentTarget) {
-        console.warn("Topic hover event has no currentTarget")
-        return
-      }
-
-      // 计算悬浮框位置，确保在视口内
-      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-
-      // 获取视口高度和宽度
-      const viewportHeight = window.innerHeight
-      const viewportWidth = window.innerWidth
-
-      // 预估悬浮框的尺寸 - 根据内容调整高度
+      // 计算悬浮框的最佳位置
       const hasExtraContent = topic.desc || topic.author || topic.timestamp
       const previewHeight = hasExtraContent ? 150 : 80
-      const previewWidth = 300
+      const position = calculateHoverPosition(element, 300, previewHeight)
 
-      // 计算最佳的Y位置
-      let yPosition
-
-      // 检查元素是否在视口下半部分
-      if (rect.bottom > viewportHeight / 2) {
-        // 如果在下半部分，显示在元素上方
-        yPosition = rect.top - previewHeight - 10
-      } else {
-        // 如果在上半部分，显示在元素下方
-        yPosition = rect.bottom + 10
-      }
-
-      // 确保Y位置不会超出视口
-      if (yPosition < 10) {
-        yPosition = 10 // 顶部边距
-      } else if (yPosition + previewHeight > viewportHeight - 10) {
-        yPosition = viewportHeight - previewHeight - 10 // 底部边距
-      }
-
-      // 确保X位置不会超出视口
-      let xPosition = rect.left
-      if (xPosition + previewWidth > viewportWidth - 10) {
-        xPosition = viewportWidth - previewWidth - 10
-      }
-      if (xPosition < 10) {
-        xPosition = 10
-      }
-
-      setHoverPosition({
-        x: xPosition + window.scrollX,
-        y: yPosition + window.scrollY,
-      })
-
-      // 无论如何都设置悬停主题，即使没有额外内容
+      setHoverPosition(position)
       setHoveredTopic(topic)
-    }, 200) // 减少延迟时间，使响应更快
+    }, getHoverDelay(200))
   }, [])
 
   const handleTopicLeave = useCallback(() => {
@@ -989,10 +942,11 @@ export default function PlatformGrid() {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
     }
+
     // 设置短暂延迟，避免鼠标在预览和条目之间移动时闪烁
     hoverTimeoutRef.current = setTimeout(() => {
       setHoveredTopic(null)
-    }, 50) // 减少延迟时间，使响应更快
+    }, getHoverDelay(50))
   }, [])
 
   // 渲染悬浮卡片
@@ -1159,7 +1113,13 @@ export default function PlatformGrid() {
                     <li
                       key={index}
                       className="group relative overflow-hidden rounded-md transition-all duration-200"
-                      onMouseEnter={(e) => handleTopicHover(topic, e)}
+                      onMouseEnter={(e) => {
+                        const target = e.target as HTMLElement
+                        const listItem = target.closest("li") as HTMLElement
+                        if (listItem) {
+                          handleTopicHover(topic, listItem)
+                        }
+                      }}
                       onMouseLeave={handleTopicLeave}
                       style={{ touchAction: "manipulation" }} // 优化移动端响应
                     >
@@ -1481,6 +1441,8 @@ export default function PlatformGrid() {
                 onRefresh={() => fetchPlatformData(key, 0, true)}
                 onExpand={() => setExpandedPlatform(key)}
                 isInitialLoad={isInitialLoad}
+                onTopicHover={handleTopicHover}
+                onTopicLeave={handleTopicLeave}
               />
             </div>
           ))}
@@ -1494,16 +1456,19 @@ export default function PlatformGrid() {
       <AnimatePresence>
         {hoveredTopic && (
           <motion.div
-            initial={{ opacity: 0, y: 5 }}
+            key="hover-preview"
+            initial={{ opacity: 0, y: isSafari() ? 0 : 5 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
-            transition={{ duration: 0.15 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: isSafari() ? 0.1 : 0.15 }}
             className="fixed z-[9999] bg-card border rounded-lg shadow-lg p-3 max-w-sm"
             style={{
               left: `${hoverPosition.x}px`,
               top: `${hoverPosition.y}px`,
               pointerEvents: "none", // 确保悬浮框不会阻止鼠标事件
               minWidth: "200px", // 确保有最小宽度
+              transform: "translateZ(0)", // 强制硬件加速
+              willChange: "transform, opacity", // 提示浏览器优化
             }}
           >
             <div className="space-y-2">

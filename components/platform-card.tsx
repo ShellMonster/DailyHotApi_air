@@ -1,13 +1,14 @@
 "use client"
 
-import { memo, useEffect, useRef, useState } from "react"
+import type React from "react"
+
+import { memo, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AlertCircle, RefreshCw, Flame } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import type { PlatformData, Topic } from "@/types"
-import { formatTimestamp } from "@/lib/utils"
 import { isSafari } from "@/lib/browser-utils"
 
 interface PlatformCardProps {
@@ -19,6 +20,8 @@ interface PlatformCardProps {
   onRefresh: () => void
   onExpand: () => void
   isInitialLoad: boolean
+  onTopicHover?: (topic: Topic, element: HTMLElement) => void
+  onTopicLeave?: () => void
 }
 
 // 使用memo优化组件，避免不必要的重渲染
@@ -33,18 +36,15 @@ const PlatformCard = memo(function PlatformCard({
   onRefresh,
   onExpand,
   isInitialLoad,
+  onTopicHover,
+  onTopicLeave,
 }: PlatformCardProps) {
   const hasData = data && data.data && data.data.length > 0
   const isUnsupported = error === "此平台暂不支持" || error === "此平台暂时不可用"
 
-  // 用于跟踪鼠标悬停的条目
-  const [hoveredTopic, setHoveredTopic] = useState<Topic | null>(null)
-  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const topicRefs = useRef<Map<number, HTMLLIElement | null>>(new Map())
-
   // 用于跟踪组件是否已挂载
   const isMounted = useRef(false)
+  const topicRefs = useRef<Map<number, HTMLLIElement | null>>(new Map())
 
   const isSafariBrowser = isSafari() // 检测是否为Safari浏览器
 
@@ -55,10 +55,6 @@ const PlatformCard = memo(function PlatformCard({
     // Cleanup function
     return () => {
       isMounted.current = false
-      // 清除可能存在的定时器
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current)
-      }
     }
   }, [])
 
@@ -72,92 +68,26 @@ const PlatformCard = memo(function PlatformCard({
     return numValue.toString()
   }
 
-  // 修改处理鼠标悬停事件的函数，优化悬浮预览框的位置计算
-
   // 处理鼠标悬停事件
-  const handleMouseEnter = (topic: Topic, index: number) => {
-    // 清除之前的定时器
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
-    }
-
-    // 设置短暂延迟，避免鼠标快速划过时显示预览
-    hoverTimeoutRef.current = setTimeout(() => {
-      // 如果标题为空，不显示预览
-      if (!topic.title) return
-
-      const element = topicRefs.current.get(index)
-      if (!element) {
-        if (DEBUG_HOVER) {
-          console.warn(`Topic element at index ${index} not found in refs`)
-        }
-        return
-      }
-
-      const rect = element.getBoundingClientRect()
-
-      // 获取视口高度和宽度
-      const viewportHeight = window.innerHeight
-      const viewportWidth = window.innerWidth
-
-      // 预估悬浮框的尺寸 - 根据内容调整高度
-      const hasExtraContent = topic.desc || topic.author || topic.timestamp
-      const previewHeight = hasExtraContent ? 150 : 80
-      const previewWidth = 300
-
-      // 计算最佳的Y位置
-      let yPosition
-
-      // 检查元素是否在视口下半部分
-      if (rect.bottom > viewportHeight / 2) {
-        // 如果在下半部分，显示在元素上方
-        yPosition = rect.top - previewHeight - 10
-      } else {
-        // 如果在上半部分，显示在元素下方
-        yPosition = rect.bottom + 10
-      }
-
-      // 确保Y位置不会超出视口
-      if (yPosition < 10) {
-        yPosition = 10 // 顶部边距
-      } else if (yPosition + previewHeight > viewportHeight - 10) {
-        yPosition = viewportHeight - previewHeight - 10 // 底部边距
-      }
-
-      // 确保X位置不会超出视口
-      let xPosition = rect.left
-      if (xPosition + previewWidth > viewportWidth - 10) {
-        xPosition = viewportWidth - previewWidth - 10
-      }
-      if (xPosition < 10) {
-        xPosition = 10
-      }
-
-      setHoverPosition({
-        x: xPosition + window.scrollX,
-        y: yPosition + window.scrollY,
-      })
-
-      // 无论如何都设置悬停主题，即使没有额外内容
-      setHoveredTopic(topic)
-    }, 200) // 减少延迟时间，使响应更快
+  const handleMouseEnter = (topic: Topic, index: number, event: React.MouseEvent) => {
     if (DEBUG_HOVER) {
       console.log("Mouse enter:", topic.title, "index:", index)
-      console.log("Topic data:", topic)
+    }
+
+    // 如果提供了外部处理函数，则调用它
+    if (onTopicHover && event.currentTarget) {
+      onTopicHover(topic, event.currentTarget as HTMLElement)
     }
   }
 
   const handleMouseLeave = () => {
-    // 清除定时器
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
-    }
-    // 设置短暂延迟，避免鼠标在预览和条目之间移动时闪烁
-    hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredTopic(null)
-    }, 50) // 减少延迟时间，使响应更快
     if (DEBUG_HOVER) {
       console.log("Mouse leave")
+    }
+
+    // 如果提供了外部处理函数，则调用它
+    if (onTopicLeave) {
+      onTopicLeave()
     }
   }
 
@@ -235,7 +165,7 @@ const PlatformCard = memo(function PlatformCard({
                 key={index}
                 ref={(el) => topicRefs.current.set(index, el)}
                 className="group relative overflow-hidden rounded-md"
-                onMouseEnter={() => handleMouseEnter(topic, index)}
+                onMouseEnter={(e) => handleMouseEnter(topic, index, e)}
                 onMouseLeave={handleMouseLeave}
               >
                 <a
@@ -342,50 +272,6 @@ const PlatformCard = memo(function PlatformCard({
           )}
         </CardFooter>
       </Card>
-
-      {/* 悬浮预览框 */}
-      <AnimatePresence>
-        {hoveredTopic && (
-          <motion.div
-            initial={{ opacity: 0, y: isSafariBrowser ? 0 : 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: isSafariBrowser ? 0 : 5 }}
-            transition={{ duration: isSafariBrowser ? 0.1 : 0.15 }}
-            className="fixed z-[9999] bg-card border rounded-lg shadow-lg p-3 max-w-sm"
-            style={{
-              left: `${hoverPosition.x}px`,
-              top: `${hoverPosition.y}px`,
-              pointerEvents: "none", // 确保悬浮框不会阻止鼠标事件
-              minWidth: "200px", // 确保有最小宽度
-              transform: isSafariBrowser ? "translateZ(0)" : undefined, // 在Safari上强制硬件加速
-            }}
-          >
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <h4 className="font-medium text-sm">{hoveredTopic.title}</h4>
-                {hoveredTopic.hot && Number(hoveredTopic.hot) > 0 && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Flame className="h-3 w-3 text-orange-500" />
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatNumber(Number(hoveredTopic.hot))}
-                    </span>
-                  </div>
-                )}
-              </div>
-              {hoveredTopic.desc && hoveredTopic.desc !== hoveredTopic.title && (
-                <p className="text-xs text-muted-foreground">{hoveredTopic.desc}</p>
-              )}
-              {hoveredTopic.author && <div className="text-xs text-muted-foreground">作者: {hoveredTopic.author}</div>}
-              {hoveredTopic.timestamp && (
-                <div className="text-xs text-muted-foreground">发布时间: {formatTimestamp(hoveredTopic.timestamp)}</div>
-              )}
-              {!hoveredTopic.desc && !hoveredTopic.author && !hoveredTopic.timestamp && (
-                <p className="text-xs text-muted-foreground italic">点击查看详情</p>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   )
 })
