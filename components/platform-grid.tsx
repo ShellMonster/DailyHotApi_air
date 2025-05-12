@@ -8,7 +8,7 @@ import { formatDistanceToNow } from "date-fns"
 import { zhCN } from "date-fns/locale"
 import { platformConfig, categories } from "@/config/platforms"
 import type { PlatformData, Topic } from "@/types"
-import { AnimatePresence, motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { SearchDialog } from "@/components/search-dialog"
 import { KeywordAnalysisDialog } from "./keyword-analysis-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -150,34 +150,16 @@ export default function PlatformGrid() {
   useEffect(() => {
     // 当悬浮卡片打开时，禁用页面滚动
     if (expandedPlatform) {
-      // 保存当前滚动位置
-      const scrollY = window.scrollY
-
-      // 添加样式禁用滚动并固定页面位置
+      // 禁用滚动但不改变滚动位置
       document.body.style.overflow = "hidden"
-      document.body.style.position = "fixed"
-      document.body.style.top = `-${scrollY}px`
-      document.body.style.width = "100%"
     } else {
-      // 恢复滚动
-      const scrollY = document.body.style.top
+      // 恢复滚动，但不改变滚动位置
       document.body.style.overflow = ""
-      document.body.style.position = ""
-      document.body.style.top = ""
-      document.body.style.width = ""
-
-      // 恢复滚动位置
-      if (scrollY) {
-        window.scrollTo(0, Number.parseInt(scrollY || "0", 10) * -1)
-      }
     }
 
     return () => {
       // 组件卸载时确保恢复滚动
       document.body.style.overflow = ""
-      document.body.style.position = ""
-      document.body.style.top = ""
-      document.body.style.width = ""
     }
   }, [expandedPlatform])
 
