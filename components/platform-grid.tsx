@@ -64,7 +64,7 @@ export default function PlatformGrid() {
   const performanceConfig = usePerformance()
 
   // 使用自适应网格布局钩子
-  const { columns, containerWidth } = useAdaptiveGrid()
+  const { columns, containerWidth, isWideScreen } = useAdaptiveGrid()
 
   // 使用性能配置设置批量加载参数
   BATCH_SIZE = performanceConfig.batchSize
@@ -1328,7 +1328,7 @@ export default function PlatformGrid() {
         className="grid gap-3 stagger-animation animate-fade-in"
         style={{
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-          maxWidth: containerWidth,
+          width: "100%",
           margin: "0 auto",
         }}
       >
@@ -1343,7 +1343,7 @@ export default function PlatformGrid() {
 
   if (isDiscoveringPlatforms && Object.keys(platformsData).length === 0) {
     return (
-      <div className="space-y-6" style={{ maxWidth: containerWidth, margin: "0 auto" }}>
+      <div className="space-y-6">
         {/* 顶部布局 */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 animate-fade-in">
           <div className="flex flex-col items-start">
@@ -1363,7 +1363,7 @@ export default function PlatformGrid() {
   }
 
   return (
-    <div className="space-y-6" style={{ maxWidth: containerWidth, margin: "0 auto" }}>
+    <div className="space-y-6">
       {/* 新的顶部布局 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 animate-fade-in">
         <div className="flex flex-col items-start">
@@ -1427,7 +1427,7 @@ export default function PlatformGrid() {
           className="grid gap-3 stagger-animation animate-fade-in-up"
           style={{
             gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-            maxWidth: containerWidth,
+            width: "100%",
             margin: "0 auto",
           }}
         >

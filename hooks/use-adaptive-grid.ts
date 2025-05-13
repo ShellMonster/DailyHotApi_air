@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 const CARD_WIDTH = 240 // 卡片的固定宽度（像素）
 const CARD_GAP = 12 // 卡片之间的间距（像素）
 const MIN_COLUMNS = 1 // 最小列数
-const MAX_COLUMNS = 8 // 最大列数
+const MAX_COLUMNS = 10 // 最大列数（增加到10，支持超宽屏幕）
 const DEFAULT_COLUMNS = 5 // 默认列数（对应lg:grid-cols-5）
 
 // 定义屏幕断点
@@ -26,6 +26,10 @@ export function useAdaptiveGrid() {
   const [columns, setColumns] = useState(DEFAULT_COLUMNS)
   // 容器宽度状态
   const [containerWidth, setContainerWidth] = useState("100%")
+  // 页面容器宽度状态
+  const [pageContainerWidth, setPageContainerWidth] = useState("100%")
+  // 是否是宽屏
+  const [isWideScreen, setIsWideScreen] = useState(false)
 
   useEffect(() => {
     // 计算最佳列数的函数
@@ -33,8 +37,14 @@ export function useAdaptiveGrid() {
       // 获取视口宽度
       const viewportWidth = window.innerWidth
 
+      // 确定是否是宽屏
+      const wideScreen = viewportWidth > BREAKPOINTS.xl
+      setIsWideScreen(wideScreen)
+
       // 计算内容区域宽度（考虑页面边距）
-      const contentWidth = viewportWidth * 0.95 // 假设内容区域占视口的95%
+      // 在宽屏上使用更大的比例
+      const contentWidthRatio = wideScreen ? 0.95 : 0.9
+      const contentWidth = viewportWidth * contentWidthRatio
 
       // 计算可以容纳的最大列数
       const maxPossibleColumns = Math.floor((contentWidth + CARD_GAP) / (CARD_WIDTH + CARD_GAP))
@@ -51,15 +61,29 @@ export function useAdaptiveGrid() {
         optimalColumns = Math.min(optimalColumns, 3)
       } else if (viewportWidth < BREAKPOINTS.lg) {
         optimalColumns = Math.min(optimalColumns, 4)
+      } else if (viewportWidth >= BREAKPOINTS["3xl"]) {
+        // 对于超宽屏幕，确保至少有8列
+        optimalColumns = Math.max(8, optimalColumns)
+      } else if (viewportWidth >= BREAKPOINTS["2xl"]) {
+        // 对于2倍超大屏幕，确保至少有7列
+        optimalColumns = Math.max(7, optimalColumns)
+      } else if (viewportWidth >= BREAKPOINTS.xl) {
+        // 对于超大屏幕，确保至少有6列
+        optimalColumns = Math.max(6, optimalColumns)
       }
 
-      // 计算容器宽度
+      // 计算网格容器宽度
       const totalWidth = optimalColumns * CARD_WIDTH + (optimalColumns - 1) * CARD_GAP
       const containerWidthValue = `${totalWidth}px`
+
+      // 计算页面容器宽度 - 给网格容器添加一些边距
+      const pageWidth = totalWidth + 40 // 添加左右各20px的边距
+      const pageContainerWidthValue = `${pageWidth}px`
 
       // 更新状态
       setColumns(optimalColumns)
       setContainerWidth(containerWidthValue)
+      setPageContainerWidth(pageContainerWidthValue)
     }
 
     // 初始计算
@@ -78,5 +102,5 @@ export function useAdaptiveGrid() {
     }
   }, [])
 
-  return { columns, containerWidth }
+  return { columns, containerWidth, pageContainerWidth, isWideScreen }
 }
