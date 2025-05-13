@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Search, BarChart3, RefreshCw, Sun, Moon } from "lucide-react"
+import { Search, BarChart2, RefreshCw, Moon, Sun, ArrowUp } from "lucide-react"
 import { useTheme } from "next-themes"
-import { motion, AnimatePresence } from "framer-motion"
 
 interface MobileNavProps {
   onSearch: () => void
@@ -13,111 +11,112 @@ interface MobileNavProps {
 }
 
 export function MobileNav({ onSearch, onAnalysis, onRefresh }: MobileNavProps) {
-  const [isVisible, setIsVisible] = useState(false)
-  const [lastScrollY, setLastScrollY] = useState(0)
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+  const [lastScrollY, setLastScrollY] = useState(0)
+  const [isNavVisible, setIsNavVisible] = useState(true)
 
-  // 在组件挂载后设置mounted为true
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
+  // 监听滚动事件，控制返回顶部按钮显示和导航栏的显示/隐藏
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY
 
-      // 如果向上滚动或在页面顶部，显示导航栏
-      if (currentScrollY <= 0 || currentScrollY < lastScrollY) {
-        setIsVisible(true)
+      // 控制返回顶部按钮显示
+      if (currentScrollY > 300) {
+        setShowScrollTop(true)
+      } else {
+        setShowScrollTop(false)
       }
-      // 如果向下滚动超过20px，隐藏导航栏
-      else if (currentScrollY > lastScrollY && currentScrollY > 20) {
-        setIsVisible(false)
+
+      // 滚动方向检测，向下滚动时隐藏导航栏，向上滚动时显示
+      if (currentScrollY > lastScrollY + 10) {
+        setIsNavVisible(false)
+      } else if (currentScrollY < lastScrollY - 10) {
+        setIsNavVisible(true)
       }
 
       setLastScrollY(currentScrollY)
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true })
-
-    // 初始显示导航栏
-    setIsVisible(true)
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll)
-    }
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [lastScrollY])
 
-  // 只在大屏幕上隐藏
-  if (typeof window !== "undefined" && window.innerWidth >= 768) {
-    return null
+  // 返回顶部功能
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    })
   }
 
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed bottom-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-t py-2 px-4 sm:hidden"
-        >
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onSearch}
-              className="flex flex-col items-center justify-center h-12 w-16 rounded-lg"
-            >
-              <Search className="h-4 w-4 mb-1" />
-              <span className="text-[10px]">搜索</span>
-            </Button>
+    <>
+      {/* 底部导航栏 */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 bg-background border-t z-50 transition-transform duration-300 ${
+          isNavVisible ? "translate-y-0" : "translate-y-full"
+        }`}
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0.5rem)" }}
+      >
+        <div className="flex items-center justify-around h-14">
+          <button
+            onClick={onSearch}
+            className="flex flex-col items-center justify-center w-full h-full text-muted-foreground hover:text-primary active:text-primary transition-colors"
+            aria-label="搜索"
+          >
+            <Search className="h-5 w-5" />
+            <span className="text-xs mt-1">搜索</span>
+          </button>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onAnalysis}
-              className="flex flex-col items-center justify-center h-12 w-16 rounded-lg"
-            >
-              <BarChart3 className="h-4 w-4 mb-1" />
-              <span className="text-[10px]">分析</span>
-            </Button>
+          <button
+            onClick={onAnalysis}
+            className="flex flex-col items-center justify-center w-full h-full text-muted-foreground hover:text-primary active:text-primary transition-colors"
+            aria-label="分析"
+          >
+            <BarChart2 className="h-5 w-5" />
+            <span className="text-xs mt-1">分析</span>
+          </button>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRefresh}
-              className="flex flex-col items-center justify-center h-12 w-16 rounded-lg"
-            >
-              <RefreshCw className="h-4 w-4 mb-1" />
-              <span className="text-[10px]">刷新</span>
-            </Button>
+          <button
+            onClick={onRefresh}
+            className="flex flex-col items-center justify-center w-full h-full text-muted-foreground hover:text-primary active:text-primary transition-colors"
+            aria-label="刷新"
+          >
+            <RefreshCw className="h-5 w-5" />
+            <span className="text-xs mt-1">刷新</span>
+          </button>
 
-            {mounted && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex flex-col items-center justify-center h-12 w-16 rounded-lg"
-              >
-                {theme === "dark" ? (
-                  <>
-                    <Sun className="h-4 w-4 mb-1" />
-                    <span className="text-[10px]">亮色</span>
-                  </>
-                ) : (
-                  <>
-                    <Moon className="h-4 w-4 mb-1" />
-                    <span className="text-[10px]">暗色</span>
-                  </>
-                )}
-              </Button>
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="flex flex-col items-center justify-center w-full h-full text-muted-foreground hover:text-primary active:text-primary transition-colors"
+            aria-label={theme === "dark" ? "切换到亮色模式" : "切换到暗色模式"}
+          >
+            {theme === "dark" ? (
+              <>
+                <Sun className="h-5 w-5" />
+                <span className="text-xs mt-1">亮色</span>
+              </>
+            ) : (
+              <>
+                <Moon className="h-5 w-5" />
+                <span className="text-xs mt-1">暗色</span>
+              </>
             )}
-          </div>
-        </motion.div>
+          </button>
+        </div>
+      </div>
+
+      {/* 返回顶部按钮 */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-20 right-4 bg-primary text-primary-foreground rounded-full p-2 shadow-lg z-50 animate-fade-in touch-manipulation"
+          aria-label="返回顶部"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </button>
       )}
-    </AnimatePresence>
+    </>
   )
 }
