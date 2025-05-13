@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AlertCircle, ExternalLink, RefreshCw, X, Search, ChevronLeft, ChevronRight, Flame } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import { zhCN } from "date-fns/locale" // 修复导入路径
+import { zhCN } from "date-fns/locale" // Fix import path
 import { platformConfig, categories } from "@/config/platforms"
 import type { PlatformData, Topic } from "@/types"
 import { motion, AnimatePresence } from "framer-motion"
@@ -13,60 +13,60 @@ import { SearchDialog } from "@/components/search-dialog"
 import { KeywordAnalysisDialog } from "./keyword-analysis-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import dynamic from "next/dynamic"
-import { formatTimestamp, formatRelativeTime } from "@/lib/utils" // 导入新的格式化函数
+import { formatTimestamp, formatRelativeTime } from "@/lib/utils" // Import formatting functions
 import { SkeletonCard } from "./skeleton-card"
 import { LoadingState } from "./loading-state"
 
-// 导入性能相关工具和钩子
+// Import performance-related tools and hooks
 import { usePerformance } from "@/components/performance-provider"
 import { debounce, throttle } from "@/lib/performance-utils"
 
-// 导入Safari检测和优化函数
+// Import Safari detection and optimization functions
 import { isSafari, applySafariOptimizations } from "@/lib/browser-utils"
 
-// 导入
+// Import hover utilities
 import { calculateHoverPosition, getHoverDelay } from "@/lib/hover-utils"
 
-// 动态导入平台卡片组件，减少初始加载时间
+// Import responsive layout hook
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout"
+
+// Dynamically import platform card component to reduce initial load time
 const PlatformCard = dynamic(() => import("./platform-card"), {
   loading: () => <SkeletonCard />,
   ssr: false,
 })
 
-// 定义平台的固定顺序
+// Define fixed order for platforms
 const FEATURED_PLATFORMS_ROW1 = ["bilibili", "weibo", "douyin", "zhihu", "36kr"]
 const FEATURED_PLATFORMS_ROW2 = ["github", "juejin", "sspai", "tieba", "v2ex"]
 
-// 每页显示的条目数
+// Items per page for pagination
 const ITEMS_PER_PAGE = 10
 
-// 定义可能需要特殊处理的平台
+// Define platforms that might need special handling
 const PROBLEMATIC_PLATFORMS = ["hupu"]
 
-// 批量加载平台的数量
+// Batch loading parameters
 let BATCH_SIZE = 3
 let BATCH_DELAY = 500
 
-// 热度颜色映射函数 - 根据热度值返回对应的颜色类名
+// Heat color mapping function - returns color class based on heat value
 const getHeatColorClass = (percentage: number): string => {
-  if (percentage >= 0.8) return "bg-gradient-to-r from-red-500 to-orange-500" // 非常热门
-  if (percentage >= 0.5) return "bg-gradient-to-r from-orange-500 to-yellow-500" // 热门
-  if (percentage >= 0.3) return "bg-gradient-to-r from-yellow-500 to-green-500" // 较热门
-  return "bg-gradient-to-r from-blue-500 to-cyan-500" // 一般热门
+  if (percentage >= 0.8) return "bg-gradient-to-r from-red-500 to-orange-500" // Very hot
+  if (percentage >= 0.5) return "bg-gradient-to-r from-orange-500 to-yellow-500" // Hot
+  if (percentage >= 0.3) return "bg-gradient-to-r from-yellow-500 to-green-500" // Moderately hot
+  return "bg-gradient-to-r from-blue-500 to-cyan-500" // Normal
 }
 
-// 在文件顶部导入新的钩子
-import { useResponsiveGrid } from "@/hooks/use-responsive-grid"
-
-// 在组件内部使用性能配置
+// Main component
 export default function PlatformGrid() {
-  // 获取性能配置
+  // Get performance config
   const performanceConfig = usePerformance()
 
-  // 添加响应式网格钩子
-  const grid = useResponsiveGrid()
+  // Use responsive layout hook
+  const layout = useResponsiveLayout()
 
-  // 使用性能配置设置批量加载参数
+  // Use performance config to set batch loading parameters
   BATCH_SIZE = performanceConfig.batchSize
   BATCH_DELAY = performanceConfig.batchDelay
 
@@ -79,32 +79,32 @@ export default function PlatformGrid() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
-  const [isInitialized, setIsInitialized] = useState(false) // 新增：跟踪初始化状态
-  const [showSkeletons, setShowSkeletons] = useState(true) // 新增：控制骨架屏显示
+  const [isInitialized, setIsInitialized] = useState(false) // Track initialization state
+  const [showSkeletons, setShowSkeletons] = useState(true) // Control skeleton screen display
 
-  // 悬浮卡片状态
+  // Floating card state
   const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null)
   const expandedCardRef = useRef<HTMLDivElement>(null)
 
-  // 悬浮预览状态
+  // Hover preview state
   const [hoveredTopic, setHoveredTopic] = useState<Topic | null>(null)
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // 分页状态
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
 
-  // 用于跟踪可见平台的ref
+  // Refs for tracking visible platforms
   const observerRef = useRef<IntersectionObserver | null>(null)
   const platformRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
-  // 用于跟踪组件是否已挂载
+  // Ref for tracking if component is mounted
   const isMountedRef = useRef(true)
 
-  // 用于跟踪活动的请求控制器
+  // Ref for tracking active request controllers
   const activeControllersRef = useRef(new Set<AbortController>())
 
-  // 点击外部关闭悬浮卡片
+  // Close floating card when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (expandedCardRef.current && !expandedCardRef.current.contains(event.target as Node)) {
@@ -118,22 +118,22 @@ export default function PlatformGrid() {
     }
   }, [expandedCardRef])
 
-  // 重置分页当平台变化时
+  // Reset pagination when platform changes
   useEffect(() => {
     setCurrentPage(1)
   }, [expandedPlatform])
 
-  // 设置组件挂载状态
+  // Set component mount state
   useEffect(() => {
     isMountedRef.current = true
 
-    // 应用Safari特定优化
+    // Apply Safari-specific optimizations
     applySafariOptimizations()
 
     return () => {
       isMountedRef.current = false
 
-      // 中止所有活动的请求
+      // Abort all active requests
       activeControllersRef.current.forEach((controller) => {
         try {
           if (!controller.signal.aborted) {
@@ -145,31 +145,31 @@ export default function PlatformGrid() {
       })
       activeControllersRef.current.clear()
 
-      // 清除悬浮预览的定时器
+      // Clear hover preview timer
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current)
       }
     }
   }, [])
 
-  // 添加这个 useEffect 在 expandedPlatform 变化时控制页面滚动
+  // Control page scrolling when expanded platform changes
   useEffect(() => {
-    // 当悬浮卡片打开时，禁用页面滚动
+    // Disable page scrolling when floating card is open
     if (expandedPlatform) {
-      // 禁用滚动但不改变滚动位置
+      // Disable scrolling without changing scroll position
       document.body.style.overflow = "hidden"
     } else {
-      // 恢复滚动，但不改变滚动位置
+      // Restore scrolling without changing scroll position
       document.body.style.overflow = ""
     }
 
     return () => {
-      // 组件卸载时确保恢复滚动
+      // Ensure scrolling is restored when component unmounts
       document.body.style.overflow = ""
     }
   }, [expandedPlatform])
 
-  // 创建和跟踪 AbortController
+  // Create and track AbortController
   const createController = useCallback(() => {
     const controller = new AbortController()
     activeControllersRef.current.add(controller)
@@ -177,7 +177,7 @@ export default function PlatformGrid() {
     return controller
   }, [])
 
-  // 移除 AbortController
+  // Remove AbortController
   const removeController = useCallback((controller: AbortController) => {
     activeControllersRef.current.delete(controller)
   }, [])
@@ -211,18 +211,18 @@ export default function PlatformGrid() {
 
           console.log("Available platforms from /all:", platforms)
 
-          // 从可用平台列表中移除已知有问题的平台
+          // Remove known problematic platforms from available platforms list
           const filteredPlatforms = platforms.filter((platform) => !PROBLEMATIC_PLATFORMS.includes(platform))
 
           if (isMountedRef.current) {
-            // 只有当平台列表发生变化时才更新状态
+            // Only update state if platform list has changed
             setAvailablePlatforms((prev) => {
-              // 如果平台列表没有变化，返回之前的状态
+              // If platform list hasn't changed, return previous state
               if (prev.length === filteredPlatforms.length && prev.every((p, i) => p === filteredPlatforms[i])) {
                 return prev
               }
 
-              // 为已知有问题的平台设置错误信息
+              // Set error messages for known problematic platforms
               PROBLEMATIC_PLATFORMS.forEach((platform) => {
                 if (platforms.includes(platform)) {
                   setPlatformErrors((prev) => ({
@@ -245,7 +245,7 @@ export default function PlatformGrid() {
       // If /all fails or returns unexpected format, try to discover platforms by testing each one
       const discovered = []
       // Get all platform keys from our config
-      const testPlatforms = Object.keys(platformConfig).filter((platform) => !PROBLEMATIC_PLATFORMS.includes(platform)) // 排除已知有问题的平台
+      const testPlatforms = Object.keys(platformConfig).filter((platform) => !PROBLEMATIC_PLATFORMS.includes(platform)) // Exclude known problematic platforms
 
       // Test each platform with a HEAD request to see if it exists
       for (const platform of testPlatforms) {
@@ -336,21 +336,21 @@ export default function PlatformGrid() {
     return platform
   }, [])
 
-  // 修改 fetchPlatformData 函数，添加 forceRefresh 参数
+  // Fetch platform data with forceRefresh parameter
   const fetchPlatformData = useCallback(
     async (platform: string, retryCount = 0, forceRefresh = false) => {
-      // 在函数开始处添加检查，避免不必要的状态更新
+      // Add check at the beginning of the function to avoid unnecessary state updates
       if (!isMountedRef.current) return
 
-      // 如果平台已经在加载中，避免重复设置加载状态
+      // If platform is already loading, avoid setting loading state again
       if (loading[platform]) return
 
       if (!isMountedRef.current) return
 
-      // 最大重试次数
+      // Maximum retry count
       const MAX_RETRIES = 2
 
-      // 跳过已知有问题的平台
+      // Skip known problematic platforms
       if (PROBLEMATIC_PLATFORMS.includes(platform)) {
         setPlatformErrors((prev) => ({
           ...prev,
@@ -385,18 +385,18 @@ export default function PlatformGrid() {
         try {
           console.log(`Trying to fetch ${platform} data using endpoint: ${endpointName}`)
 
-          // 创建一个新的 AbortController 实例
+          // Create a new AbortController instance
           const controller = createController()
           const signal = controller.signal
 
-          // 构建URL，如果forceRefresh为true，则添加cache=false参数
+          // Build URL, add cache=false parameter if forceRefresh is true
           const url = new URL(`https://dailyhotpage-lac.vercel.app/${endpointName}`)
           if (forceRefresh) {
             url.searchParams.append("cache", "false")
           }
 
-          // 使用 Promise.race 和显式的超时 Promise，而不是依赖 AbortSignal.timeout
-          // 这样我们可以更好地控制超时行为和错误消息
+          // Use Promise.race with explicit timeout Promise instead of relying on AbortSignal.timeout
+          // This gives us better control over timeout behavior and error messages
           const timeoutPromise = new Promise((_, reject) => {
             const timeoutId = setTimeout(() => {
               controller.abort()
@@ -412,14 +412,14 @@ export default function PlatformGrid() {
             removeController(controller)
           })
 
-          // 使用 Promise.race 在超时和成功请求之间竞争
+          // Use Promise.race between timeout and successful request
           const response = (await Promise.race([fetchPromise, timeoutPromise])) as Response
 
           if (!response.ok) {
             const errorMessage = `API returned ${response.status}: ${response.statusText}`
             console.warn(errorMessage)
 
-            // 如果这是最后一个尝试的端点，存储错误
+            // If this is the last endpoint attempt, store the error
             if (endpointName === endpointNames[endpointNames.length - 1] && isMountedRef.current) {
               setPlatformErrors((prev) => ({
                 ...prev,
@@ -427,22 +427,22 @@ export default function PlatformGrid() {
               }))
             }
 
-            // 继续尝试下一个端点名称
+            // Continue trying next endpoint name
             continue
           }
 
           const data = await response.json()
 
-          // 检查响应是否具有预期的结构
+          // Check if response has expected structure
           if (data && typeof data === "object" && Array.isArray(data.data)) {
             if (isMountedRef.current) {
-              // 立即更新数据，不等待其他平台
+              // Update data immediately, don't wait for other platforms
               setPlatformsData((prev) => {
                 const newData = { ...prev, [platform]: data }
 
-                // 如果已经有一些数据了，可以考虑隐藏骨架屏
+                // If we already have some data, consider hiding skeletons
                 if (Object.keys(newData).length >= BATCH_SIZE) {
-                  // 使用setTimeout确保状态更新不会阻塞UI渲染
+                  // Use setTimeout to ensure state update doesn't block UI rendering
                   setTimeout(() => {
                     if (isMountedRef.current) {
                       setShowSkeletons(false)
@@ -453,19 +453,19 @@ export default function PlatformGrid() {
                 return newData
               })
 
-              // 清除之前的错误
+              // Clear previous errors
               setPlatformErrors((prev) => {
                 const newErrors = { ...prev }
                 delete newErrors[platform]
                 return newErrors
               })
 
-              // 如果此平台不在我们的可用列表中但可用，则添加它
+              // If this platform isn't in our available list but is available, add it
               if (!availablePlatforms.includes(endpointName)) {
                 setAvailablePlatforms((prev) => [...prev, endpointName])
               }
 
-              // 立即标记为加载完成
+              // Mark as loading complete immediately
               setLoading((prev) => ({ ...prev, [platform]: false }))
             }
 
@@ -474,7 +474,7 @@ export default function PlatformGrid() {
           } else {
             console.error(`Invalid data structure for ${platform} using ${endpointName}:`, data)
 
-            // 如果这是最后一个尝试的端点，存储错误
+            // If this is the last endpoint attempt, store the error
             if (endpointName === endpointNames[endpointNames.length - 1] && isMountedRef.current) {
               setPlatformErrors((prev) => ({
                 ...prev,
@@ -521,10 +521,10 @@ export default function PlatformGrid() {
         }))
       }
 
-      // 如果所有尝试都失败，并且我们还没有达到最大重试次数，则重试
+      // If all attempts failed and we haven't reached max retry count, retry
       if (!succeeded && retryCount < MAX_RETRIES && isMountedRef.current) {
         console.log(`Retrying ${platform} (attempt ${retryCount + 1}/${MAX_RETRIES})...`)
-        // 使用指数退避策略，每次重试等待时间增加
+        // Use exponential backoff strategy, increasing wait time with each retry
         const retryDelay = 1000 * Math.pow(2, retryCount)
         const timeoutId = setTimeout(() => {
           if (isMountedRef.current) {
@@ -540,38 +540,38 @@ export default function PlatformGrid() {
     [availablePlatforms, getPossibleEndpointNames, getApiEndpointName, createController, removeController, loading],
   )
 
-  // 批量加载平台数据
+  // Batch load platform data
   const fetchPlatformsInBatches = useCallback(
     async (platforms: string[], forceRefresh = false) => {
       if (!isMountedRef.current) return
 
       try {
-        // 如果是初始加载，先显示骨架屏
+        // If initial load, show skeletons first
         if (isInitialLoad) {
           setShowSkeletons(true)
         }
 
-        // 为Safari减少批量大小和增加延迟
+        // Reduce batch size and increase delay for Safari
         const safariAdjustedBatchSize = isSafari() ? Math.max(1, Math.floor(BATCH_SIZE / 2)) : BATCH_SIZE
         const safariAdjustedBatchDelay = isSafari() ? BATCH_DELAY * 1.5 : BATCH_DELAY
 
-        // 将平台分成批次
+        // Split platforms into batches
         for (let i = 0; i < platforms.length; i += safariAdjustedBatchSize) {
           // Check if still mounted before processing each batch
           if (!isMountedRef.current) break
 
           const batch = platforms.slice(i, i + safariAdjustedBatchSize)
 
-          // 并行加载每个批次中的平台，但不等待所有完成再显示
-          // 使用Promise.allSettled而不是Promise.all，这样一个请求失败不会影响其他请求
+          // Load platforms in each batch in parallel, but don't wait for all to complete before showing
+          // Use Promise.allSettled instead of Promise.all so one request failing doesn't affect others
           const batchPromises = batch.map((platform) => {
             // Only fetch if still mounted
             if (isMountedRef.current) {
               return fetchPlatformData(platform, 0, forceRefresh)
                 .then(() => {
-                  // 每个平台数据加载完成后，立即隐藏该平台的骨架屏
+                  // After each platform data loads, immediately hide that platform's skeleton
                   if (isMountedRef.current && platformsData[platform]) {
-                    // 如果已经有数据了，可以考虑隐藏骨架屏
+                    // If we already have data, consider hiding skeletons
                     if (Object.keys(platformsData).length > batch.length) {
                       setShowSkeletons(false)
                     }
@@ -586,15 +586,15 @@ export default function PlatformGrid() {
             return Promise.resolve({ platform, success: false, skipped: true })
           })
 
-          // 等待当前批次的请求完成或失败
+          // Wait for current batch of requests to complete or fail
           await Promise.allSettled(batchPromises)
 
-          // 如果至少有一些数据已加载，就隐藏骨架屏
+          // If at least some data has loaded, hide skeletons
           if (isMountedRef.current && Object.keys(platformsData).length > 0) {
             setShowSkeletons(false)
           }
 
-          // 在批次之间添加延迟，避免一次性发送太多请求
+          // Add delay between batches to avoid sending too many requests at once
           if (i + safariAdjustedBatchSize < platforms.length && isMountedRef.current) {
             await new Promise((resolve) => {
               const timeoutId = setTimeout(resolve, safariAdjustedBatchDelay)
@@ -608,7 +608,7 @@ export default function PlatformGrid() {
         if (isMountedRef.current) {
           setIsInitialLoad(false)
 
-          // 确保所有数据加载完成后，骨架屏一定被隐藏
+          // Ensure skeletons are hidden after all data loads
           setShowSkeletons(false)
         }
       }
@@ -616,12 +616,12 @@ export default function PlatformGrid() {
     [fetchPlatformData, platformsData, isInitialLoad],
   )
 
-  // 修改 fetchAllPlatforms 函数，添加 forceRefresh 参数
+  // Fetch all platforms with forceRefresh parameter
   const fetchAllPlatforms = useCallback(
     async (forceRefresh = false) => {
       if (!isMountedRef.current) return
 
-      // 显示骨架屏
+      // Show skeletons
       setShowSkeletons(true)
 
       // First discover which platforms are available
@@ -629,12 +629,12 @@ export default function PlatformGrid() {
         await discoverAvailablePlatforms()
       }
 
-      // 获取要加载的平台列表
+      // Get list of platforms to load
       const platformsToLoad = Object.keys(platformConfig).filter(
         (platform) => !PROBLEMATIC_PLATFORMS.includes(platform),
-      ) // 排除已知有问题的平台
+      ) // Exclude known problematic platforms
 
-      // 批量加载平台数据
+      // Batch load platform data
       await fetchPlatformsInBatches(platformsToLoad, forceRefresh)
 
       if (isMountedRef.current) {
@@ -644,42 +644,42 @@ export default function PlatformGrid() {
     [availablePlatforms, discoverAvailablePlatforms, fetchPlatformsInBatches],
   )
 
-  // 设置交叉观察器来监视平台卡片的可见性
+  // Set up intersection observer to monitor platform card visibility
   useEffect(() => {
-    // 如果浏览器支持 IntersectionObserver
+    // If browser supports IntersectionObserver
     if ("IntersectionObserver" in window) {
-      // 为Safari使用不同的配置
+      // Use different config for Safari
       const observerConfig = isSafari()
         ? { rootMargin: "300px", threshold: 0.01 }
         : { rootMargin: "200px", threshold: 0.1 }
 
-      // 跟踪最后一次观察触发的时间，防止频繁触发
+      // Track last observer trigger time to prevent frequent triggers
       const lastObserverTriggerTime = 0
-      const OBSERVER_DEBOUNCE_TIME = isSafari() ? 1000 : 300 // Safari上使用更长的防抖时间
+      const OBSERVER_DEBOUNCE_TIME = isSafari() ? 1000 : 300 // Use longer debounce time on Safari
 
-      // 创建观察器
+      // Create observer
       observerRef.current = new IntersectionObserver((entries) => {
-        // 使用防抖处理，避免短时间内多次触发
+        // Use debounce handling to avoid multiple triggers in short time
         const visiblePlatforms = entries
           .filter((entry) => entry.isIntersecting)
           .map((entry) => entry.target.getAttribute("data-platform"))
           .filter(Boolean) as string[]
 
         if (visiblePlatforms.length > 0) {
-          // 找出需要加载的平台（没有数据且没有在加载中）
+          // Find platforms that need loading (no data and not loading)
           const platformsToLoad = visiblePlatforms.filter(
             (platform) => !platformsData[platform] && !loading[platform] && !platformErrors[platform],
           )
 
           if (platformsToLoad.length > 0) {
             console.log(`Loading visible platforms: ${platformsToLoad.join(", ")}`)
-            // 一次最多加载2个平台，避免并发请求过多
+            // Load at most 2 platforms at once to avoid too many concurrent requests
             fetchPlatformsInBatches(platformsToLoad.slice(0, 2))
           }
         }
       }, observerConfig)
 
-      // 为所有平台卡片添加观察
+      // Add observation for all platform cards
       Object.entries(platformRefs.current).forEach(([platform, el]) => {
         if (el) {
           el.setAttribute("data-platform", platform)
@@ -689,54 +689,54 @@ export default function PlatformGrid() {
     }
 
     return () => {
-      // 清理观察器
+      // Clean up observer
       if (observerRef.current) {
         observerRef.current.disconnect()
       }
     }
   }, [fetchPlatformsInBatches, platformsData, loading, platformErrors])
 
-  // 获取按指定顺序排列的平台 - 使用useMemo优化
+  // Get platforms in specified order - optimized with useMemo
   const getOrderedPlatforms = useMemo(() => {
     const filteredPlatforms = Object.entries(platformConfig)
       .filter(([_, config]) => {
         if (activeCategory === null) {
-          return true // 如果没有选择分类，则包括所有平台
+          return true // If no category selected, include all platforms
         } else {
-          return config.category === activeCategory // 否则，只包括所选分类的平台
+          return config.category === activeCategory // Otherwise, only include platforms in selected category
         }
       })
       .map(([key, config]) => ({ key, config }))
 
-    // 如果没有选择分类，则按指定顺序排列
+    // If no category selected, arrange in specified order
     if (activeCategory === null) {
       const result: { key: string; config: any }[] = []
 
-      // 添加第一行特定平台
+      // Add first row specific platforms
       FEATURED_PLATFORMS_ROW1.forEach((platform) => {
         if (platformConfig[platform]) {
           result.push({ key: platform, config: platformConfig[platform] })
         }
       })
 
-      // 添加第二行特定平台
+      // Add second row specific platforms
       FEATURED_PLATFORMS_ROW2.forEach((platform) => {
         if (platformConfig[platform]) {
           result.push({ key: platform, config: platformConfig[platform] })
         }
       })
 
-      // 添加其他平台，按分类分组
+      // Add other platforms, grouped by category
       const remainingPlatforms = Object.entries(platformConfig)
         .filter(([key, _]) => !FEATURED_PLATFORMS_ROW1.includes(key) && !FEATURED_PLATFORMS_ROW2.includes(key))
         .sort((a, b) => {
-          // 首先按分类排序
+          // Sort by category first
           const categoryA = a[1].category
           const categoryB = b[1].category
           if (categoryA !== categoryB) {
             return categoryA.localeCompare(categoryB)
           }
-          // 然后按名称排序
+          // Then sort by name
           return a[1].title.localeCompare(b[1].title)
         })
         .map(([key, config]) => ({ key, config }))
@@ -747,13 +747,13 @@ export default function PlatformGrid() {
     return filteredPlatforms
   }, [activeCategory])
 
-  // 在平台列表变化时重新设置观察器
+  // Reset observer when platform list changes
   useEffect(() => {
     if (observerRef.current) {
-      // 先断开所有观察
+      // Disconnect all observations first
       observerRef.current.disconnect()
 
-      // 重新观察所有平台元素
+      // Re-observe all platform elements
       Object.entries(platformRefs.current).forEach(([platform, el]) => {
         if (el) {
           el.setAttribute("data-platform", platform)
@@ -765,62 +765,62 @@ export default function PlatformGrid() {
     }
   }, [getOrderedPlatforms])
 
-  // 初始加载 - 修复无限刷新问题
+  // Initial load - fix infinite refresh issue
   useEffect(() => {
-    // 防止重复初始化
+    // Prevent repeated initialization
     if (isInitialized) return
 
-    // 标记为已初始化，确保此 effect 只运行一次
+    // Mark as initialized to ensure this effect only runs once
     setIsInitialized(true)
 
-    // 显示骨架屏
+    // Show skeletons
     setShowSkeletons(true)
 
-    // 只加载首屏可见平台和特定平台
+    // Only load first screen visible platforms and specific platforms
     const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
 
-    // 首先发现可用平台
+    // First discover available platforms
     const discoverAndLoad = async () => {
       if (!isMountedRef.current) return
 
       try {
-        // 显示骨架屏，但设置较短的超时以确保UI不会长时间空白
+        // Show skeletons, but set short timeout to ensure UI isn't blank for long
         setShowSkeletons(true)
 
-        // 添加Safari特定的检查，避免重复加载
+        // Add Safari-specific check to avoid repeated loading
         const isSafariBrowser = isSafari()
 
-        // 在Safari上添加短暂延迟，避免立即加载导致的重复刷新
+        // Add short delay on Safari to avoid immediate loading causing repeated refresh
         if (isSafariBrowser) {
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
 
         await discoverAvailablePlatforms()
 
-        // 然后批量加载初始平台，但不等待全部完成再显示
+        // Then batch load initial platforms, but don't wait for all to complete before showing
         if (isMountedRef.current) {
-          // 优先加载首屏可见平台
+          // Prioritize loading first screen visible platforms
           const initialPlatforms = [...FEATURED_PLATFORMS_ROW1, ...FEATURED_PLATFORMS_ROW2]
 
-          // 不等待所有平台加载完成，而是立即开始加载
+          // Don't wait for all platforms to load, start loading immediately
           fetchPlatformsInBatches(initialPlatforms).catch((error) => {
             console.error("Error loading initial platforms:", error)
-            // 确保即使出错也不会一直显示骨架屏
+            // Ensure skeletons aren't shown forever even if error occurs
             setShowSkeletons(false)
           })
 
-          // 设置一个较短的超时，确保即使API响应慢也会在一定时间后隐藏骨架屏
+          // Set short timeout to ensure skeletons are hidden after a while even if API is slow
           setTimeout(() => {
             if (isMountedRef.current && Object.keys(platformsData).length === 0) {
-              // 如果还没有数据，显示一个友好的消息而不是骨架屏
+              // If still no data, show friendly message instead of skeletons
               setIsDiscoveringPlatforms(false)
               setShowSkeletons(false)
             }
-          }, 5000) // 5秒后如果还没有数据，就隐藏骨架屏
+          }, 5000) // Hide skeletons after 5 seconds if still no data
         }
       } catch (error) {
         console.error("Error during initial load:", error)
-        // 确保即使出错也不会一直显示骨架屏
+        // Ensure skeletons aren't shown forever even if error occurs
         setShowSkeletons(false)
         setIsDiscoveringPlatforms(false)
       }
@@ -828,13 +828,13 @@ export default function PlatformGrid() {
 
     discoverAndLoad()
 
-    // 设置轮询，每5分钟自动刷新数据
-    // 在Safari上增加随机延迟，避免精确的5分钟导致的同步问题
+    // Set up polling to auto-refresh data every 5 minutes
+    // Add random delay on Safari to avoid exact 5-minute sync issues
     const randomDelay = isSafari() ? Math.floor(Math.random() * 10000) : 0
     const intervalId = setInterval(
       () => {
         if (isMountedRef.current) {
-          // 只刷新已加载的平台
+          // Only refresh loaded platforms
           const loadedPlatforms = Object.keys(platformsData)
           if (loadedPlatforms.length > 0) {
             console.log("Auto-refreshing platforms:", loadedPlatforms.length)
@@ -845,14 +845,14 @@ export default function PlatformGrid() {
       5 * 60 * 1000 + randomDelay,
     )
 
-    // 清理函数
+    // Cleanup function
     return () => {
       clearInterval(intervalId)
     }
-  }, [isInitialized, discoverAvailablePlatforms, fetchPlatformsInBatches, platformsData]) // 只依赖 isInitialized，确保只运行一次
+  }, [isInitialized, discoverAvailablePlatforms, fetchPlatformsInBatches, platformsData]) // Only depend on isInitialized to ensure it only runs once
 
   const formatNumber = useCallback((num: number) => {
-    // 确保num是数字
+    // Ensure num is a number
     const numValue = typeof num === "string" ? Number(num) : num
 
     if (numValue >= 10000) {
@@ -861,7 +861,7 @@ export default function PlatformGrid() {
     return numValue.toString()
   }, [])
 
-  // Count platforms in each category - 使用useMemo优化
+  // Count platforms in each category - optimized with useMemo
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: Object.keys(platformConfig).length }
 
@@ -873,7 +873,7 @@ export default function PlatformGrid() {
     return counts
   }, [])
 
-  // 处理翻页
+  // Handle pagination
   const handlePageChange = useCallback(
     (direction: "prev" | "next") => {
       if (!expandedPlatform) return
@@ -893,7 +893,7 @@ export default function PlatformGrid() {
     [expandedPlatform, platformsData, currentPage],
   )
 
-  // 获取当前页的数据
+  // Get current page data
   const getPaginatedData = useCallback(
     (data: Topic[]) => {
       const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
@@ -903,19 +903,19 @@ export default function PlatformGrid() {
     [currentPage],
   )
 
-  // 修改处理悬浮预览的函数，优化悬浮预览框的位置计算
+  // Handle topic hover with optimized position calculation
   const handleTopicHover = useCallback((topic: Topic, element: HTMLElement) => {
-    // 清除之前的定时器
+    // Clear previous timer
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
     }
 
-    // 设置短暂延迟，避免鼠标快速划过时显示预览
+    // Set short delay to avoid showing preview when mouse quickly passes over
     hoverTimeoutRef.current = setTimeout(() => {
-      // 如果标题为空，不显示预览
+      // Don't show preview if title is empty
       if (!topic.title) return
 
-      // 计算悬浮框的最佳位置
+      // Calculate best position for hover box
       const hasExtraContent = topic.desc || topic.author || topic.timestamp
       const previewHeight = hasExtraContent ? 150 : 80
       const position = calculateHoverPosition(element, 300, previewHeight)
@@ -926,18 +926,18 @@ export default function PlatformGrid() {
   }, [])
 
   const handleTopicLeave = useCallback(() => {
-    // 清除定时器
+    // Clear timer
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
     }
 
-    // 设置短暂延迟，避免鼠标在预览和条目之间移动时闪烁
+    // Set short delay to avoid flickering when mouse moves between preview and item
     hoverTimeoutRef.current = setTimeout(() => {
       setHoveredTopic(null)
     }, getHoverDelay(50))
   }, [])
 
-  // 渲染悬浮卡片
+  // Render floating card
   const renderExpandedCard = useCallback(() => {
     if (!expandedPlatform) return null
 
@@ -949,34 +949,34 @@ export default function PlatformGrid() {
       platformsData[expandedPlatform]?.data &&
       platformsData[expandedPlatform]?.data.length > 0
 
-    // 计算分页信息
+    // Calculate pagination info
     const totalItems = hasData ? platformsData[expandedPlatform]?.data.length || 0 : 0
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
 
-    // 获取当前页的数据
+    // Get current page data
     const paginatedData = hasData ? getPaginatedData(platformsData[expandedPlatform]?.data || []) : []
 
-    // 计算当前页面中的最大热度值，用于归一化热度条
+    // Calculate maximum hot value in current page for normalizing heat bars
     const maxHotValue = paginatedData.reduce((max, topic) => {
       return topic.hot && Number(topic.hot) > max ? Number(topic.hot) : max
     }, 0)
 
-    // 检查平台是否不支持
+    // Check if platform is unsupported
     const errorMessage = platformErrors[expandedPlatform]
     const isUnsupported = errorMessage === "此平台暂不支持" || errorMessage === "此平台暂时不可用"
 
-    // 生成页码数组
+    // Generate page numbers array
     const getPageNumbers = () => {
       const pageNumbers = []
-      const maxPageButtons = 5 // 最多显示的页码按钮数
+      const maxPageButtons = 5 // Maximum number of page buttons to show
 
       if (totalPages <= maxPageButtons) {
-        // 如果总页数小于等于最大按钮数，显示所有页码
+        // If total pages is less than or equal to max buttons, show all pages
         for (let i = 1; i <= totalPages; i++) {
           pageNumbers.push(i)
         }
       } else {
-        // 否则，显示当前页附近的页码
+        // Otherwise, show pages near current page
         let startPage = Math.max(1, currentPage - Math.floor(maxPageButtons / 2))
         let endPage = startPage + maxPageButtons - 1
 
@@ -989,7 +989,7 @@ export default function PlatformGrid() {
           pageNumbers.push(i)
         }
 
-        // 添加省略号
+        // Add ellipsis
         if (startPage > 1) {
           pageNumbers.unshift("...")
           pageNumbers.unshift(1)
@@ -1004,7 +1004,7 @@ export default function PlatformGrid() {
       return pageNumbers
     }
 
-    // 使用更轻量的动画配置
+    // Use lighter animation config
     const modalAnimation = {
       initial: { opacity: 0 },
       animate: { opacity: 1 },
@@ -1012,7 +1012,7 @@ export default function PlatformGrid() {
       transition: { duration: 0.1 },
     }
 
-    // 获取更新时间的相对时间显示
+    // Get relative time display for update time
     const updateTimeDisplay = platformsData[expandedPlatform]?.updateTime
       ? formatRelativeTime(platformsData[expandedPlatform]?.updateTime || "")
       : "未知时间"
@@ -1039,7 +1039,7 @@ export default function PlatformGrid() {
               )}
             </div>
 
-            {/* 将底部按钮移到顶部右侧，并添加更新时间 */}
+            {/* Move bottom buttons to top right and add update time */}
             <div className="flex items-center gap-2">
               {platformsData[expandedPlatform]?.updateTime && (
                 <span className="text-xs text-muted-foreground mr-2">{updateTimeDisplay}</span>
@@ -1093,10 +1093,10 @@ export default function PlatformGrid() {
             {hasData ? (
               <ul className="py-1.5 space-y-1">
                 {paginatedData.map((topic: Topic, index: number) => {
-                  // 计算实际索引，用于确定排名样式
+                  // Calculate actual index for determining rank style
                   const actualIndex = (currentPage - 1) * ITEMS_PER_PAGE + index
 
-                  // 计算热度百分比，用于热度条宽度和颜色
+                  // Calculate heat percentage for heat bar width and color
                   const hotPercentage = topic.hot && maxHotValue ? Number(topic.hot) / maxHotValue : 0
                   const heatColorClass = getHeatColorClass(hotPercentage)
 
@@ -1112,7 +1112,7 @@ export default function PlatformGrid() {
                         }
                       }}
                       onMouseLeave={handleTopicLeave}
-                      style={{ touchAction: "manipulation" }} // 优化移动端响应
+                      style={{ touchAction: "manipulation" }} // Optimize mobile response
                     >
                       <a
                         href={topic.url || topic.mobileUrl}
@@ -1137,14 +1137,14 @@ export default function PlatformGrid() {
                             <div className="flex flex-col items-end gap-1 min-w-[60px]">
                               {topic.hot && Number(topic.hot) > 0 ? (
                                 <>
-                                  {/* 热度值数字显示 */}
+                                  {/* Heat value number display */}
                                   <div className="flex items-center gap-1">
                                     <Flame className="h-3 w-3 text-orange-500" />
-                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                    <span className="text-xs text-muted-foreground whitespace-nowrap">
                                       {formatNumber(Number(topic.hot))}
                                     </span>
                                   </div>
-                                  {/* 热度条可视化 */}
+                                  {/* Heat bar visualization */}
                                   <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
                                     <div
                                       className={`h-full ${heatColorClass} rounded-full transition-all duration-300`}
@@ -1213,7 +1213,7 @@ export default function PlatformGrid() {
             )}
           </div>
 
-          {/* 优化的分页控制器 */}
+          {/* Optimized pagination controller */}
           {hasData && totalPages > 1 && (
             <div className="flex items-center justify-between py-4 px-4 bg-background">
               <div className="text-xs text-muted-foreground">共 {totalItems} 条</div>
@@ -1293,26 +1293,26 @@ export default function PlatformGrid() {
 
   const orderedPlatforms = getOrderedPlatforms
 
-  // 使用节流函数优化滚动处理
+  // Use throttle function to optimize scroll handling
   const handleScroll = useCallback(
     throttle(() => {
-      // 滚动处理逻辑
+      // Scroll handling logic
       console.log("Scroll event throttled")
     }, 100),
     [],
   )
 
-  // 使用防抖函数优化搜索处理
+  // Use debounce function to optimize search handling
   const handleSearch = useCallback(
     debounce((term: string) => {
-      // 搜索处理逻辑
+      // Search handling logic
       console.log("Search debounced:", term)
       setSearchDialogOpen(true)
     }, 300),
     [],
   )
 
-  // 添加滚动事件监听
+  // Add scroll event listener
   useEffect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => {
@@ -1320,13 +1320,19 @@ export default function PlatformGrid() {
     }
   }, [handleScroll])
 
-  // 修改渲染骨架屏的函数，使用动态计算的数量
+  // Render skeletons - use dynamic column count
   const renderSkeletons = () => {
-    // 根据当前列数计算需要显示的骨架屏数量
-    const skeletonCount = Math.min(grid.columns * 3, 16) // 最多显示3行，最多16个
+    // Calculate number of skeletons to show based on current column count
+    const skeletonCount = Math.min(layout.columns * 3, 15) // At most 3 rows, at most 15 skeletons
 
     return (
-      <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 stagger-animation animate-fade-in">
+      <div
+        className="grid gap-3 animate-fade-in stagger-animation"
+        style={{
+          gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+          width: "100%",
+        }}
+      >
         {Array(skeletonCount)
           .fill(0)
           .map((_, index) => (
@@ -1339,7 +1345,7 @@ export default function PlatformGrid() {
   if (isDiscoveringPlatforms && Object.keys(platformsData).length === 0) {
     return (
       <div className="space-y-6">
-        {/* 顶部布局 */}
+        {/* Top layout */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 animate-fade-in">
           <div className="flex flex-col items-start">
             <h2 className="text-xl font-semibold tracking-tight">今日热榜</h2>
@@ -1359,7 +1365,7 @@ export default function PlatformGrid() {
 
   return (
     <div className="space-y-6">
-      {/* 新的顶部布局 */}
+      {/* New top layout */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 animate-fade-in">
         <div className="flex flex-col items-start">
           <h2 className="text-xl font-semibold tracking-tight">今日热榜</h2>
@@ -1383,7 +1389,7 @@ export default function PlatformGrid() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fetchAllPlatforms(false)} // 修改为不强制刷新
+            onClick={() => fetchAllPlatforms(false)} // Change to not force refresh
             className="flex items-center gap-1 rounded-full px-3 py-1 h-7 text-xs transition-all hover:bg-primary hover:text-primary-foreground"
           >
             <RefreshCw className="h-3 w-3" />
@@ -1414,11 +1420,17 @@ export default function PlatformGrid() {
         </div>
       </div>
 
-      {/* 显示骨架屏或实际内容 */}
+      {/* Show skeletons or actual content */}
       {showSkeletons ? (
         renderSkeletons()
       ) : (
-        <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 stagger-animation animate-fade-in-up">
+        <div
+          className="grid gap-3 stagger-animation animate-fade-in-up"
+          style={{
+            gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+            width: "100%",
+          }}
+        >
           {orderedPlatforms.map(({ key, config }, index) => (
             <div
               key={key}
@@ -1432,7 +1444,7 @@ export default function PlatformGrid() {
                 data={platformsData[key]}
                 loading={loading[key] || false}
                 error={platformErrors[key]}
-                onRefresh={() => fetchPlatformData(key, 0, true)} // 内容块刷新按钮使用强制刷新
+                onRefresh={() => fetchPlatformData(key, 0, true)} // Content block refresh button uses force refresh
                 onExpand={() => setExpandedPlatform(key)}
                 isInitialLoad={isInitialLoad}
                 onTopicHover={handleTopicHover}
@@ -1443,10 +1455,10 @@ export default function PlatformGrid() {
         </div>
       )}
 
-      {/* 悬浮卡片 */}
+      {/* Floating card */}
       <AnimatePresence>{expandedPlatform && renderExpandedCard()}</AnimatePresence>
 
-      {/* 悬浮预览 */}
+      {/* Hover preview */}
       <AnimatePresence>
         {hoveredTopic && (
           <motion.div
@@ -1459,10 +1471,10 @@ export default function PlatformGrid() {
             style={{
               left: `${hoverPosition.x}px`,
               top: `${hoverPosition.y}px`,
-              pointerEvents: "none", // 确保悬浮框不会阻止鼠标事件
-              minWidth: "200px", // 确保有最小宽度
-              transform: "translateZ(0)", // 强制硬件加速
-              willChange: "transform, opacity", // 提示浏览器优化
+              pointerEvents: "none", // Ensure hover box doesn't block mouse events
+              minWidth: "200px", // Ensure minimum width
+              transform: "translateZ(0)", // Force hardware acceleration
+              willChange: "transform, opacity", // Hint browser to optimize
             }}
           >
             <div className="space-y-2">
@@ -1492,7 +1504,7 @@ export default function PlatformGrid() {
         )}
       </AnimatePresence>
 
-      {/* 搜索对话框 */}
+      {/* Search dialog */}
       <SearchDialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen} platformsData={platformsData} />
     </div>
   )
