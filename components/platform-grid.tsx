@@ -58,22 +58,8 @@ const getHeatColorClass = (percentage: number): string => {
   return "bg-gradient-to-r from-blue-500 to-cyan-500" // 一般热门
 }
 
-interface PlatformGridProps {
-  isMobile?: boolean
-  searchDialogOpen?: boolean
-  setSearchDialogOpen?: (open: boolean) => void
-  analysisDialogOpen?: boolean
-  setAnalysisDialogOpen?: (open: boolean) => void
-}
-
 // 在组件内部使用性能配置
-export default function PlatformGrid({
-  isMobile = false,
-  searchDialogOpen,
-  setSearchDialogOpen = () => {},
-  analysisDialogOpen,
-  setAnalysisDialogOpen = () => {},
-}: PlatformGridProps) {
+export default function PlatformGrid() {
   // 获取性能配置
   const performanceConfig = usePerformance()
 
@@ -91,11 +77,10 @@ export default function PlatformGrid({
   const [platformErrors, setPlatformErrors] = useState<Record<string, string>>({})
   const [isDiscoveringPlatforms, setIsDiscoveringPlatforms] = useState(true)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
-  const [searchDialogOpenInternal, setSearchDialogOpenInternal] = useState(false)
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false) // 新增：跟踪初始化状态
   const [showSkeletons, setShowSkeletons] = useState(true) // 新增：控制骨架屏显示
-  const [isRefreshing, setIsRefreshing] = useState(false) // 新增：下拉刷新状态
 
   // 悬浮卡片状态
   const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null)
@@ -118,10 +103,6 @@ export default function PlatformGrid({
 
   // 用于跟踪活动的请求控制器
   const activeControllersRef = useRef(new Set<AbortController>())
-
-  // 下拉刷新相关
-  const startYRef = useRef(0)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   // 点击外部关闭悬浮卡片
   useEffect(() => {
@@ -626,7 +607,6 @@ export default function PlatformGrid({
         // Only update state if still mounted
         if (isMountedRef.current) {
           setIsInitialLoad(false)
-          setIsRefreshing(false) // 结束下拉刷新状态
 
           // 确保所有数据加载完成后，骨架屏一定被隐藏
           setShowSkeletons(false)
@@ -924,37 +904,28 @@ export default function PlatformGrid({
   )
 
   // 修改处理悬浮预览的函数，优化悬浮预览框的位置计算
-  const handleTopicHover = useCallback(
-    (topic: Topic, element: HTMLElement) => {
-      // 如果是移动设备，不显示悬浮预览
-      if (isMobile) return
+  const handleTopicHover = useCallback((topic: Topic, element: HTMLElement) => {
+    // 清除之前的定时器
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
 
-      // 清除之前的定时器
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current)
-      }
+    // 设置短暂延迟，避免鼠标快速划过时显示预览
+    hoverTimeoutRef.current = setTimeout(() => {
+      // 如果标题为空，不显示预览
+      if (!topic.title) return
 
-      // 设置短暂延迟，避免鼠标快速划过时显示预览
-      hoverTimeoutRef.current = setTimeout(() => {
-        // 如果标题为空，不显示预览
-        if (!topic.title) return
+      // 计算悬浮框的最佳位置
+      const hasExtraContent = topic.desc || topic.author || topic.timestamp
+      const previewHeight = hasExtraContent ? 150 : 80
+      const position = calculateHoverPosition(element, 300, previewHeight)
 
-        // 计算悬浮框的最佳位置
-        const hasExtraContent = topic.desc || topic.author || topic.timestamp
-        const previewHeight = hasExtraContent ? 150 : 80
-        const position = calculateHoverPosition(element, 300, previewHeight)
-
-        setHoverPosition(position)
-        setHoveredTopic(topic)
-      }, getHoverDelay(200))
-    },
-    [isMobile],
-  )
+      setHoverPosition(position)
+      setHoveredTopic(topic)
+    }, getHoverDelay(200))
+  }, [])
 
   const handleTopicLeave = useCallback(() => {
-    // 如果是移动设备，不处理离开事件
-    if (isMobile) return
-
     // 清除定时器
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
@@ -964,7 +935,7 @@ export default function PlatformGrid({
     hoverTimeoutRef.current = setTimeout(() => {
       setHoveredTopic(null)
     }, getHoverDelay(50))
-  }, [isMobile])
+  }, [])
 
   // 渲染悬浮卡片
   const renderExpandedCard = useCallback(() => {
@@ -1349,38 +1320,6 @@ export default function PlatformGrid({
     }
   }, [handleScroll])
 
-  // 下拉刷新处理
-  useEffect(() => {
-    if (!isMobile || !containerRef.current) return
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (window.scrollY === 0) {
-        startYRef.current = e.touches[0].clientY
-      }
-    }
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (startYRef.current === 0 || window.scrollY > 0) return
-
-      const currentY = e.touches[0].clientY
-      const diff = currentY - startYRef.current
-
-      if (diff > 50 && !isRefreshing) {
-        setIsRefreshing(true)
-        fetchAllPlatforms(true)
-      }
-    }
-
-    const container = containerRef.current
-    container.addEventListener("touchstart", handleTouchStart, { passive: true })
-    container.addEventListener("touchmove", handleTouchMove, { passive: true })
-
-    return () => {
-      container.removeEventListener("touchstart", handleTouchStart)
-      container.removeEventListener("touchmove", handleTouchMove)
-    }
-  }, [isMobile, isRefreshing, fetchAllPlatforms])
-
   // 修改渲染骨架屏的函数
   const renderSkeletons = () => {
     // 使用动态列数渲染骨架屏
@@ -1424,15 +1363,7 @@ export default function PlatformGrid({
   }
 
   return (
-    <div className="space-y-6" ref={containerRef}>
-      {/* 下拉刷新指示器 */}
-      {isRefreshing && (
-        <div className="flex justify-center items-center py-2 animate-fade-in">
-          <RefreshCw className="h-5 w-5 animate-spin text-primary" />
-          <span className="ml-2 text-sm">正在刷新...</span>
-        </div>
-      )}
-
+    <div className="space-y-6">
       {/* 新的顶部布局 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 animate-fade-in">
         <div className="flex flex-col items-start">
@@ -1444,46 +1375,42 @@ export default function PlatformGrid({
           <div className="text-center text-xs text-muted-foreground mr-auto sm:mr-0">
             上次更新: {formatDistanceToNow(lastUpdated, { addSuffix: true, locale: zhCN })}
           </div>
-          {!isMobile && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSearchDialogOpen(true)}
-                className="flex items-center gap-1 rounded-full px-3 py-1 h-7 text-xs transition-all hover:bg-primary hover:text-primary-foreground"
-              >
-                <Search className="h-3 w-3" />
-                <span className="ml-1">搜索</span>
-              </Button>
-              <KeywordAnalysisDialog platformsData={platformsData} />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchAllPlatforms(true)}
-                className="flex items-center gap-1 rounded-full px-3 py-1 h-7 text-xs transition-all hover:bg-primary hover:text-primary-foreground"
-              >
-                <RefreshCw className="h-3 w-3" />
-                <span className="ml-1">刷新</span>
-              </Button>
-              <ThemeToggle />
-            </>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSearchDialogOpen(true)}
+            className="flex items-center gap-1 rounded-full px-3 py-1 h-7 text-xs transition-all hover:bg-primary hover:text-primary-foreground"
+          >
+            <Search className="h-3 w-3" />
+            <span className="ml-1">搜索</span>
+          </Button>
+          <KeywordAnalysisDialog platformsData={platformsData} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchAllPlatforms(false)} // 修改为不强制刷新
+            className="flex items-center gap-1 rounded-full px-3 py-1 h-7 text-xs transition-all hover:bg-primary hover:text-primary-foreground"
+          >
+            <RefreshCw className="h-3 w-3" />
+            <span className="ml-1">刷新</span>
+          </Button>
+          <ThemeToggle />
         </div>
       </div>
 
-      {/* Category Navigation - 移动端优化为多行显示 */}
-      <div className="mb-5 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-        <div className="flex flex-wrap gap-2 justify-start">
+      {/* Category Navigation */}
+      <div
+        className="flex justify-start mb-5 animate-fade-in overflow-x-auto pb-1 scrollbar-thin"
+        style={{ animationDelay: "0.1s" }}
+      >
+        <div className="inline-flex items-center bg-muted/50 rounded-full p-1 overflow-x-auto max-w-full">
           {categoryItems.map((item) => (
             <button
               key={item.id || "all"}
               onClick={() => setActiveCategory(item.id)}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all touch-manipulation ${
-                activeCategory === item.id
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted/50 hover:bg-muted"
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
+                activeCategory === item.id ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted"
               }`}
-              style={{ minWidth: "fit-content" }} // 根据文字长度自适应宽度
             >
               {item.icon && <item.icon className="h-3 w-3" />}
               {item.name} <span className="text-[10px] opacity-70">({item.count})</span>
@@ -1510,7 +1437,7 @@ export default function PlatformGrid({
               ref={(el) => (platformRefs.current[key] = el)}
               data-platform={key}
               style={{ animationDelay: `${index * 0.05}s` }}
-              className="content-block touch-manipulation" // 添加类名以便于调试
+              className="content-block" // 添加类名以便于调试
             >
               <PlatformCard
                 platform={key}
@@ -1532,64 +1459,54 @@ export default function PlatformGrid({
       {/* 悬浮卡片 */}
       <AnimatePresence>{expandedPlatform && renderExpandedCard()}</AnimatePresence>
 
-      {/* 悬浮预览 - 仅在非移动设备上显示 */}
-      {!isMobile && (
-        <AnimatePresence>
-          {hoveredTopic && (
-            <motion.div
-              key="hover-preview"
-              initial={{ opacity: 0, y: isSafari() ? 0 : 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: isSafari() ? 0.1 : 0.15 }}
-              className="fixed z-[9999] bg-card border rounded-lg shadow-lg p-3 max-w-sm"
-              style={{
-                left: `${hoverPosition.x}px`,
-                top: `${hoverPosition.y}px`,
-                pointerEvents: "none", // 确保悬浮框不会阻止鼠标事件
-                minWidth: "200px", // 确保有最小宽度
-                transform: "translateZ(0)", // 强制硬件加速
-                willChange: "transform, opacity", // 提示浏览器优化
-              }}
-            >
-              <div className="space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-medium text-sm">{hoveredTopic.title}</h4>
-                  {hoveredTopic.hot && Number(hoveredTopic.hot) > 0 && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Flame className="h-3 w-3 text-orange-500" />
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatNumber(Number(hoveredTopic.hot))}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {hoveredTopic.desc && hoveredTopic.desc !== hoveredTopic.title && (
-                  <p className="text-xs text-muted-foreground">{hoveredTopic.desc}</p>
-                )}
-                {hoveredTopic.author && (
-                  <div className="text-xs text-muted-foreground">作者: {hoveredTopic.author}</div>
-                )}
-                {hoveredTopic.timestamp && (
-                  <div className="text-xs text-muted-foreground">
-                    发布时间: {formatTimestamp(hoveredTopic.timestamp)}
+      {/* 悬浮预览 */}
+      <AnimatePresence>
+        {hoveredTopic && (
+          <motion.div
+            key="hover-preview"
+            initial={{ opacity: 0, y: isSafari() ? 0 : 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: isSafari() ? 0.1 : 0.15 }}
+            className="fixed z-[9999] bg-card border rounded-lg shadow-lg p-3 max-w-sm"
+            style={{
+              left: `${hoverPosition.x}px`,
+              top: `${hoverPosition.y}px`,
+              pointerEvents: "none", // 确保悬浮框不会阻止鼠标事件
+              minWidth: "200px", // 确保有最小宽度
+              transform: "translateZ(0)", // 强制硬件加速
+              willChange: "transform, opacity", // 提示浏览器优化
+            }}
+          >
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <h4 className="font-medium text-sm">{hoveredTopic.title}</h4>
+                {hoveredTopic.hot && Number(hoveredTopic.hot) > 0 && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Flame className="h-3 w-3 text-orange-500" />
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatNumber(Number(hoveredTopic.hot))}
+                    </span>
                   </div>
                 )}
-                {!hoveredTopic.desc && !hoveredTopic.author && !hoveredTopic.timestamp && (
-                  <p className="text-xs text-muted-foreground italic">点击查看详情</p>
-                )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      )}
+              {hoveredTopic.desc && hoveredTopic.desc !== hoveredTopic.title && (
+                <p className="text-xs text-muted-foreground">{hoveredTopic.desc}</p>
+              )}
+              {hoveredTopic.author && <div className="text-xs text-muted-foreground">作者: {hoveredTopic.author}</div>}
+              {hoveredTopic.timestamp && (
+                <div className="text-xs text-muted-foreground">发布时间: {formatTimestamp(hoveredTopic.timestamp)}</div>
+              )}
+              {!hoveredTopic.desc && !hoveredTopic.author && !hoveredTopic.timestamp && (
+                <p className="text-xs text-muted-foreground italic">点击查看详情</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 搜索对话框 */}
-      <SearchDialog
-        open={searchDialogOpen !== undefined ? searchDialogOpen : searchDialogOpenInternal}
-        onOpenChange={setSearchDialogOpen !== undefined ? setSearchDialogOpen : setSearchDialogOpenInternal}
-        platformsData={platformsData}
-      />
+      <SearchDialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen} platformsData={platformsData} />
     </div>
   )
 }
