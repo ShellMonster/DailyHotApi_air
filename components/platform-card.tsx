@@ -173,7 +173,7 @@ const PlatformCard = memo(function PlatformCard({
                   href={topic.url || topic.mobileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-start gap-1.5 rounded-md p-1 hover:bg-muted/70 group-hover:shadow-sm transition-all duration-200"
+                  className="flex items-start gap-1.5 rounded-md p-1.5 hover:bg-muted/70 group-hover:shadow-sm transition-all duration-200 touch-manipulation"
                   title={topic.title} // 添加原生title属性作为备用
                 >
                   <span
@@ -189,7 +189,7 @@ const PlatformCard = memo(function PlatformCard({
                         {topic.title}
                       </span>
                       {topic.hot && Number(topic.hot) > 0 && (
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-0.5 shrink-0">
                           <Flame className="h-2.5 w-2.5 text-orange-500" />
                           <span className="text-[9px] text-muted-foreground whitespace-nowrap">
                             {formatNumber(Number(topic.hot))}

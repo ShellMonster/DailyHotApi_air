@@ -11,8 +11,6 @@ const MobileNav = dynamic(() => import("@/components/mobile-nav").then((mod) => 
 })
 
 // 优化页面加载逻辑，确保即使主组件加载慢也能显示一些内容
-
-// 修改PlatformGrid的动态导入配置，减少加载时间:
 const PlatformGrid = dynamic(
   () =>
     import("@/components/platform-grid")
@@ -59,6 +57,7 @@ export default function Home() {
   // 添加状态管理搜索对话框和关键词分析对话框
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false)
+  const [isCategoryOpen, setIsCategoryOpen] = useState(true)
 
   // 处理刷新操作
   const handleRefresh = () => {
@@ -84,47 +83,19 @@ export default function Home() {
     }
   }, [])
 
-  // 优化页面组件，提高响应速度
+  // 检测是否为移动设备
+  const [isMobile, setIsMobile] = useState(false)
 
-  // 添加性能优化相关代码
   useEffect(() => {
-    // 添加预加载API域名的逻辑，提前建立连接:
-    // 预加载关键资源
-    const preloadResources = () => {
-      // 预连接到API域名
-      const link = document.createElement("link")
-      link.rel = "preconnect"
-      link.href = "https://api-hot.imsyy.top"
-      document.head.appendChild(link)
-
-      // 添加DNS预取
-      const dnsPrefetch = document.createElement("link")
-      dnsPrefetch.rel = "dns-prefetch"
-      dnsPrefetch.href = "https://api-hot.imsyy.top"
-      document.head.appendChild(dnsPrefetch)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
     }
 
-    preloadResources()
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
 
-    // 添加性能监控
-    if (process.env.NODE_ENV === "development") {
-      console.log("Performance monitoring enabled in development mode")
-    }
-
-    // 优化事件处理
-    const optimizeEventHandling = () => {
-      // 添加passive标志以提高滚动性能
-      document.addEventListener("touchstart", () => {}, { passive: true })
-      document.addEventListener("touchmove", () => {}, { passive: true })
-    }
-
-    optimizeEventHandling()
-
-    // 清理函数
     return () => {
-      // 清理事件监听器
-      document.removeEventListener("touchstart", () => {})
-      document.removeEventListener("touchmove", () => {})
+      window.removeEventListener("resize", checkMobile)
     }
   }, [])
 
@@ -167,12 +138,18 @@ export default function Home() {
       <main style={{ width: pageContainerWidth, margin: "0 auto", transition: "width 0.3s ease" }}>
         <div className="py-4 md:py-6">
           <ErrorBoundary>
-            <PlatformGrid />
+            <PlatformGrid
+              isMobile={isMobile}
+              searchDialogOpen={searchDialogOpen}
+              setSearchDialogOpen={setSearchDialogOpen}
+              analysisDialogOpen={analysisDialogOpen}
+              setAnalysisDialogOpen={setAnalysisDialogOpen}
+            />
           </ErrorBoundary>
         </div>
       </main>
 
-      <footer className="border-t py-4">
+      <footer className="border-t py-4 mb-16 md:mb-0">
         <div style={{ width: pageContainerWidth, margin: "0 auto", transition: "width 0.3s ease" }} className="px-4">
           <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
             <p className="text-center text-[10px] text-muted-foreground md:text-left">
@@ -191,11 +168,14 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
       {/* 移动端导航 */}
       <MobileNav
         onSearch={() => setSearchDialogOpen(true)}
         onAnalysis={() => setAnalysisDialogOpen(true)}
         onRefresh={handleRefresh}
+        onCategoryToggle={() => setIsCategoryOpen(!isCategoryOpen)}
+        isCategoryOpen={isCategoryOpen}
       />
     </div>
   )
