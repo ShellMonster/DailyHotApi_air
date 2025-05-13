@@ -4,6 +4,8 @@ import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 // 添加性能提供者组件
 import { PerformanceProvider } from "@/components/performance-provider"
+// 导入调试指示器
+import { GridDebugIndicator } from "@/components/grid-debug-indicator"
 
 // 优化字体加载
 const inter = Inter({
@@ -78,6 +80,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <PerformanceProvider>{children}</PerformanceProvider>
         </ThemeProvider>
+        <GridDebugIndicator />
       </body>
     </html>
   )

@@ -55,10 +55,16 @@ const getHeatColorClass = (percentage: number): string => {
   return "bg-gradient-to-r from-blue-500 to-cyan-500" // 一般热门
 }
 
+// 在文件顶部导入新的钩子
+import { useResponsiveGrid } from "@/hooks/use-responsive-grid"
+
 // 在组件内部使用性能配置
 export default function PlatformGrid() {
   // 获取性能配置
   const performanceConfig = usePerformance()
+
+  // 添加响应式网格钩子
+  const grid = useResponsiveGrid()
 
   // 使用性能配置设置批量加载参数
   BATCH_SIZE = performanceConfig.batchSize
@@ -1314,11 +1320,14 @@ export default function PlatformGrid() {
     }
   }, [handleScroll])
 
-  // 渲染骨架屏
+  // 修改渲染骨架屏的函数，使用动态计算的数量
   const renderSkeletons = () => {
+    // 根据当前列数计算需要显示的骨架屏数量
+    const skeletonCount = Math.min(grid.columns * 3, 16) // 最多显示3行，最多16个
+
     return (
-      <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 stagger-animation animate-fade-in">
-        {Array(10)
+      <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 stagger-animation animate-fade-in">
+        {Array(skeletonCount)
           .fill(0)
           .map((_, index) => (
             <SkeletonCard key={index} index={index} />
@@ -1409,7 +1418,7 @@ export default function PlatformGrid() {
       {showSkeletons ? (
         renderSkeletons()
       ) : (
-        <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 stagger-animation animate-fade-in-up">
+        <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 stagger-animation animate-fade-in-up">
           {orderedPlatforms.map(({ key, config }, index) => (
             <div
               key={key}
