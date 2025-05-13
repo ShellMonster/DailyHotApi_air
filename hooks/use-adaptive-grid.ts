@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 
 // 定义每个卡片的固定宽度和间距
-const CARD_WIDTH = 240 // 卡片的固定宽度（像素）
+const CARD_WIDTH = 250 // 卡片的固定宽度（像素）
 const CARD_GAP = 12 // 卡片之间的间距（像素）
 const MIN_COLUMNS = 1 // 最小列数
 const MAX_COLUMNS = 10 // 最大列数（增加到10，支持超宽屏幕）
@@ -49,7 +49,9 @@ export function useAdaptiveGrid() {
       const totalCardWidth = CARD_WIDTH + CARD_GAP
 
       // 计算在最大可用宽度内可以容纳的完整内容块数量（向下取整）
-      // 注意：最后一个内容块后面不需要间距，所以我们需要特殊处理
+      // 注意：我们需要考虑最后一个内容块后面不需要间距
+      // 公式: (maxAvailableWidth + CARD_GAP) / (CARD_WIDTH + CARD_GAP)
+      // 加上CARD_GAP是为了补偿最后一个卡片不需要右边距
       const maxPossibleColumns = Math.floor((maxAvailableWidth + CARD_GAP) / totalCardWidth)
 
       // 确保列数在合理范围内
@@ -80,11 +82,14 @@ export function useAdaptiveGrid() {
       // (内容块数量 * 内容块宽度) + ((内容块数量 - 1) * 间距)
       const exactContainerWidth = optimalColumns * CARD_WIDTH + (optimalColumns - 1) * CARD_GAP
 
+      // 确保容器宽度不超过最大可用宽度
+      const finalContainerWidth = Math.min(exactContainerWidth, maxAvailableWidth)
+
       // 将容器宽度设置为精确值（以像素为单位）
-      const containerWidthValue = `${exactContainerWidth}px`
+      const containerWidthValue = `${finalContainerWidth}px`
 
       // 页面容器宽度略大一些，给整体添加一些边距
-      const pageWidth = exactContainerWidth + 40 // 添加左右各20px的边距
+      const pageWidth = finalContainerWidth + 40 // 添加左右各20px的边距
       const pageContainerWidthValue = `${pageWidth}px`
 
       // 更新状态
