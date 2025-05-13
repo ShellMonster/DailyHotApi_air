@@ -149,7 +149,7 @@ const PlatformCard = memo(function PlatformCard({
                           onRefresh()
                         }
                       }}
-                      className="mt-2 h-8 rounded-full px-4 text-xs font-medium transition-all hover:bg-primary hover:text-primary-foreground"
+                      className="mt-2 h-8 rounded-full px-4 text-xs font-medium transition-all hover:bg-primary hover:text-primary-foreground touch-manipulation"
                     >
                       <RefreshCw className="mr-1 h-3 w-3" />
                       重新加载
@@ -173,7 +173,7 @@ const PlatformCard = memo(function PlatformCard({
                   href={topic.url || topic.mobileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-start gap-1.5 rounded-md p-1 hover:bg-muted/70 group-hover:shadow-sm transition-all duration-200"
+                  className="flex items-start gap-1.5 rounded-md p-1.5 hover:bg-muted/70 group-hover:shadow-sm transition-all duration-200 touch-manipulation"
                   title={topic.title} // 添加原生title属性作为备用
                 >
                   <span
@@ -189,7 +189,7 @@ const PlatformCard = memo(function PlatformCard({
                         {topic.title}
                       </span>
                       {topic.hot && Number(topic.hot) > 0 && (
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-0.5 shrink-0">
                           <Flame className="h-2.5 w-2.5 text-orange-500" />
                           <span className="text-[9px] text-muted-foreground whitespace-nowrap">
                             {formatNumber(Number(topic.hot))}
@@ -213,7 +213,7 @@ const PlatformCard = memo(function PlatformCard({
   // 优化卡片点击响应
   return (
     <motion.div {...cardAnimation} layout={false} className="animate-fade-in-up">
-      <Card className="overflow-hidden hover:shadow-sm dark:hover:shadow-primary/5">
+      <Card className="overflow-hidden hover:shadow-sm dark:hover:shadow-primary/5 touch-ripple">
         <CardHeader
           className="p-3.5 pb-2 space-y-0.5 cursor-pointer"
           onClick={onExpand}

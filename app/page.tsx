@@ -68,6 +68,14 @@ export default function Home() {
   const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false)
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null)
 
+  const handleSearch = () => {
+    setSearchDialogOpen(true)
+  }
+
+  const handleAnalysis = () => {
+    setAnalysisDialogOpen(true)
+  }
+
   // 处理刷新操作
   const handleRefresh = () => {
     // 添加触觉反馈（如果支持）
@@ -206,67 +214,18 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background" {...(isTouchDevice ? swipeHandlers : {})} ref={mainRef}>
-      {/* 网络状态提示 */}
-      <NetworkStatus />
+    <main className="container mx-auto px-4 py-6 pb-20 sm:pb-6">
+      <ErrorBoundary>
+        <PlatformGrid
+          isMobile={isMobile}
+          searchDialogOpen={searchDialogOpen}
+          setSearchDialogOpen={setSearchDialogOpen}
+          analysisDialogOpen={analysisDialogOpen}
+          setAnalysisDialogOpen={setAnalysisDialogOpen}
+        />
+      </ErrorBoundary>
 
-      {/* 下拉刷新提示 - 仅在移动设备上显示 */}
-      {isMobile && (
-        <div
-          className="fixed top-0 left-0 right-0 z-40 bg-primary text-primary-foreground text-center text-sm py-1 transform -translate-y-full transition-transform duration-300"
-          style={{
-            transform: window.scrollY < 10 ? "translateY(0)" : "translateY(-100%)",
-          }}
-        >
-          下拉刷新
-        </div>
-      )}
-
-      <main style={{ width: pageContainerWidth, margin: "0 auto", transition: "width 0.3s ease" }}>
-        <div className="py-4 md:py-6">
-          <ErrorBoundary>
-            <PlatformGrid
-              isMobile={isMobile}
-              searchDialogOpen={searchDialogOpen}
-              setSearchDialogOpen={setSearchDialogOpen}
-              analysisDialogOpen={analysisDialogOpen}
-              setAnalysisDialogOpen={setAnalysisDialogOpen}
-            />
-          </ErrorBoundary>
-        </div>
-      </main>
-
-      <footer className="border-t py-4 mb-16 md:mb-0">
-        <div style={{ width: pageContainerWidth, margin: "0 auto", transition: "width 0.3s ease" }} className="px-4">
-          <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
-            <p className="text-center text-[10px] text-muted-foreground md:text-left">
-              &copy; {new Date().getFullYear()} 热搜聚合. 数据来源于各大平台.
-            </p>
-            <p className="text-center text-[10px] text-muted-foreground md:text-right">
-              <a
-                href="https://dailyhotpage-lac.vercel.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:text-primary"
-              >
-                API 数据源
-              </a>
-            </p>
-          </div>
-          {lastRefreshTime && (
-            <p className="text-center text-[10px] text-muted-foreground mt-1">
-              最后更新: {lastRefreshTime.toLocaleTimeString()}
-            </p>
-          )}
-        </div>
-      </footer>
-
-      {/* 移动端导航 */}
-      <MobileNav
-        onSearch={() => setSearchDialogOpen(true)}
-        onAnalysis={() => setAnalysisDialogOpen(true)}
-        onRefresh={handleRefresh}
-      />
-    </div>
+      {isMobile && <MobileNav onSearch={handleSearch} onAnalysis={handleAnalysis} onRefresh={handleRefresh} />}
+    </main>
   )
 }
