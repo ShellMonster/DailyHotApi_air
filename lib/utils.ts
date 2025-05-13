@@ -39,3 +39,48 @@ export function formatTimestamp(timestamp: string | number | null): string | nul
   // 如果不是数字字符串，则保持原样
   return timestampStr
 }
+
+/**
+ * 将时间戳格式化为相对时间（几分钟前、几小时前等）
+ * @param timestamp ISO格式的时间戳或Date对象
+ * @returns 格式化后的相对时间字符串
+ */
+export function formatRelativeTime(timestamp: string | Date | number): string {
+  if (!timestamp) return "未知时间"
+
+  const date = typeof timestamp === "string" || typeof timestamp === "number" ? new Date(timestamp) : timestamp
+
+  // 检查日期是否有效
+  if (isNaN(date.getTime())) return "未知时间"
+
+  const now = new Date()
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+  // 小于1分钟
+  if (diffInSeconds < 60) {
+    return "刚刚更新"
+  }
+
+  // 小于1小时
+  if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60)
+    return `${minutes}分钟前更新`
+  }
+
+  // 小于24小时
+  if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600)
+    return `${hours}小时前更新`
+  }
+
+  // 超过24小时，显示具体时间
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })
+}

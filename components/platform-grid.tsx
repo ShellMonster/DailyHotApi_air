@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AlertCircle, ExternalLink, RefreshCw, X, Search, ChevronLeft, ChevronRight, Flame } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import { zhCN } from "date-fns/locale"
+import { zhCN } from "date-fns/locale" // 修复导入路径
 import { platformConfig, categories } from "@/config/platforms"
 import type { PlatformData, Topic } from "@/types"
 import { motion, AnimatePresence } from "framer-motion"
@@ -13,7 +13,7 @@ import { SearchDialog } from "@/components/search-dialog"
 import { KeywordAnalysisDialog } from "./keyword-analysis-dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import dynamic from "next/dynamic"
-import { formatTimestamp } from "@/lib/utils"
+import { formatTimestamp, formatRelativeTime } from "@/lib/utils" // 导入新的格式化函数
 import { SkeletonCard } from "./skeleton-card"
 import { LoadingState } from "./loading-state"
 
@@ -1006,6 +1006,11 @@ export default function PlatformGrid() {
       transition: { duration: 0.1 },
     }
 
+    // 获取更新时间的相对时间显示
+    const updateTimeDisplay = platformsData[expandedPlatform]?.updateTime
+      ? formatRelativeTime(platformsData[expandedPlatform]?.updateTime || "")
+      : "未知时间"
+
     return (
       <motion.div
         {...modalAnimation}
@@ -1031,9 +1036,7 @@ export default function PlatformGrid() {
             {/* 将底部按钮移到顶部右侧，并添加更新时间 */}
             <div className="flex items-center gap-2">
               {platformsData[expandedPlatform]?.updateTime && (
-                <span className="text-xs text-muted-foreground mr-2">
-                  更新于: {new Date(platformsData[expandedPlatform]?.updateTime || "").toLocaleTimeString()}
-                </span>
+                <span className="text-xs text-muted-foreground mr-2">{updateTimeDisplay}</span>
               )}
               {!isUnsupported && (
                 <Button
@@ -1371,7 +1374,7 @@ export default function PlatformGrid() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fetchAllPlatforms(true)}
+            onClick={() => fetchAllPlatforms(false)} // 修改为不强制刷新
             className="flex items-center gap-1 rounded-full px-3 py-1 h-7 text-xs transition-all hover:bg-primary hover:text-primary-foreground"
           >
             <RefreshCw className="h-3 w-3" />
@@ -1420,7 +1423,7 @@ export default function PlatformGrid() {
                 data={platformsData[key]}
                 loading={loading[key] || false}
                 error={platformErrors[key]}
-                onRefresh={() => fetchPlatformData(key, 0, true)}
+                onRefresh={() => fetchPlatformData(key, 0, true)} // 内容块刷新按钮使用强制刷新
                 onExpand={() => setExpandedPlatform(key)}
                 isInitialLoad={isInitialLoad}
                 onTopicHover={handleTopicHover}

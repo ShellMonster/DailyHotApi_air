@@ -10,6 +10,7 @@ import { AlertCircle, RefreshCw, Flame } from "lucide-react"
 import { motion } from "framer-motion"
 import type { PlatformData, Topic } from "@/types"
 import { isSafari } from "@/lib/browser-utils"
+import { formatRelativeTime } from "@/lib/utils"
 
 interface PlatformCardProps {
   platform: string
@@ -17,7 +18,7 @@ interface PlatformCardProps {
   data: PlatformData | null | undefined
   loading: boolean
   error?: string
-  onRefresh: () => void
+  onRefresh: (forceRefresh?: boolean) => void
   onExpand: () => void
   isInitialLoad: boolean
   onTopicHover?: (topic: Topic, element: HTMLElement) => void
@@ -238,9 +239,7 @@ const PlatformCard = memo(function PlatformCard({
 
         <CardFooter className="flex justify-between p-3.5 pt-2.5 border-t text-[10px]">
           <div className="flex items-center gap-1">
-            <p className="text-muted-foreground">
-              {data?.updateTime && <>更新于: {new Date(data.updateTime || "").toLocaleTimeString()}</>}
-            </p>
+            <p className="text-muted-foreground">{data?.updateTime && formatRelativeTime(data.updateTime)}</p>
             {!isUnsupported && (
               <Button
                 variant="ghost"
@@ -248,7 +247,7 @@ const PlatformCard = memo(function PlatformCard({
                 onClick={(e) => {
                   e.stopPropagation() // Prevent triggering card click event
                   if (isMounted.current) {
-                    onRefresh()
+                    onRefresh(true) // 传递true表示强制刷新
                   }
                 }}
                 disabled={loading}
