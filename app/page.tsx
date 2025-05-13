@@ -164,7 +164,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main style={{ maxWidth: pageContainerWidth, margin: "0 auto", transition: "max-width 0.3s ease" }}>
+      <main style={{ width: pageContainerWidth, margin: "0 auto", transition: "width 0.3s ease" }}>
         <div className="py-4 md:py-6">
           <ErrorBoundary>
             <PlatformGrid />
@@ -173,10 +173,7 @@ export default function Home() {
       </main>
 
       <footer className="border-t py-4">
-        <div
-          style={{ maxWidth: pageContainerWidth, margin: "0 auto", transition: "max-width 0.3s ease" }}
-          className="px-4"
-        >
+        <div style={{ width: pageContainerWidth, margin: "0 auto", transition: "width 0.3s ease" }} className="px-4">
           <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
             <p className="text-center text-[10px] text-muted-foreground md:text-left">
               &copy; {new Date().getFullYear()} 热搜聚合. 数据来源于各大平台.

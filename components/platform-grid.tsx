@@ -1320,7 +1320,7 @@ export default function PlatformGrid() {
     }
   }, [handleScroll])
 
-  // 渲染骨架屏
+  // 修改渲染骨架屏的函数
   const renderSkeletons = () => {
     // 使用动态列数渲染骨架屏
     return (
@@ -1328,7 +1328,7 @@ export default function PlatformGrid() {
         className="grid gap-3 stagger-animation animate-fade-in"
         style={{
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-          width: "100%",
+          width: containerWidth, // 使用计算出的精确容器宽度
           margin: "0 auto",
         }}
       >
@@ -1427,7 +1427,7 @@ export default function PlatformGrid() {
           className="grid gap-3 stagger-animation animate-fade-in-up"
           style={{
             gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-            width: "100%",
+            width: containerWidth, // 使用计算出的精确容器宽度
             margin: "0 auto",
           }}
         >
