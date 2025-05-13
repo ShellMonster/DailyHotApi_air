@@ -24,14 +24,6 @@ export function useAdaptiveGrid() {
       // 计算容器宽度（窗口宽度的90%）
       const availableWidth = windowWidth * 0.9
 
-      // 移动端特殊处理 - 在小屏幕上使用单列布局
-      if (windowWidth < 640) {
-        setColumns(1)
-        setContainerWidth("100%") // 移动端使用100%宽度
-        setPageContainerWidth("95%") // 移动端页面容器稍微宽一点
-        return
-      }
-
       // 计算可以容纳的内容块数量（考虑间距）
       // 每个内容块占用的总宽度 = 内容块宽度 + 间距
       // 最后一个内容块不需要考虑右侧间距，但为了简化计算，我们统一考虑
