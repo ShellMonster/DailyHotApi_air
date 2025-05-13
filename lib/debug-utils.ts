@@ -32,7 +32,7 @@ export function addReferenceMarker(element: HTMLElement | null): void {
   marker.style.position = "absolute"
   marker.style.top = "0"
   marker.style.left = "0"
-  marker.style.width = "250px"
+  marker.style.width = "270px" // 从250px修改为270px
   marker.style.height = "2px"
   marker.style.backgroundColor = "red"
   marker.style.zIndex = "1000"

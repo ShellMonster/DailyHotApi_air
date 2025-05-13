@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 
 export function useAdaptiveGrid() {
-  // 内容块的固定宽度为250px
-  const CONTENT_BLOCK_WIDTH = 250
+  // 内容块的固定宽度为270px（从250px修改）
+  const CONTENT_BLOCK_WIDTH = 270
   // 内容块之间的间距
   const GAP_WIDTH = 12
   // 默认列数
