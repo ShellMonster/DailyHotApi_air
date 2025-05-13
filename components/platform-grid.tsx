@@ -1327,8 +1327,8 @@ export default function PlatformGrid() {
       <div
         className="grid gap-3 stagger-animation animate-fade-in"
         style={{
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-          width: containerWidth, // 使用计算出的精确容器宽度
+          gridTemplateColumns: `repeat(${columns}, minmax(250px, 1fr))`,
+          width: containerWidth,
           margin: "0 auto",
         }}
       >
@@ -1426,8 +1426,8 @@ export default function PlatformGrid() {
         <div
           className="grid gap-3 stagger-animation animate-fade-in-up"
           style={{
-            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-            width: containerWidth, // 使用计算出的精确容器宽度
+            gridTemplateColumns: `repeat(${columns}, minmax(250px, 1fr))`,
+            width: containerWidth,
             margin: "0 auto",
           }}
         >
@@ -1437,6 +1437,7 @@ export default function PlatformGrid() {
               ref={(el) => (platformRefs.current[key] = el)}
               data-platform={key}
               style={{ animationDelay: `${index * 0.05}s` }}
+              className="content-block" // 添加类名以便于调试
             >
               <PlatformCard
                 platform={key}
