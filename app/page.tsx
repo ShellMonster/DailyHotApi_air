@@ -1,29 +1,34 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import ErrorBoundary from "@/components/error-boundary"
 import { useAdaptiveGrid } from "@/hooks/use-adaptive-grid"
+import { useMobile } from "@/hooks/use-mobile"
+import { usePullToRefresh } from "@/hooks/use-pull-refresh"
 
-// 动态导入移动导航组件
+// 动态导入组件
 const MobileNav = dynamic(() => import("@/components/mobile-nav").then((mod) => ({ default: mod.MobileNav })), {
   ssr: false,
 })
 
-// 优化页面加载逻辑，确保即使主组件加载慢也能显示一些内容
+const NetworkStatus = dynamic(
+  () => import("@/components/network-status").then((mod) => ({ default: mod.NetworkStatus })),
+  {
+    ssr: false,
+  },
+)
 
-// 修改PlatformGrid的动态导入配置，减少加载时间:
+// 优化页面加载逻辑
 const PlatformGrid = dynamic(
   () =>
     import("@/components/platform-grid")
       .then((mod) => {
         console.log("PlatformGrid component loaded successfully")
-        // 确保导入的是默认导出
         return { default: mod.default }
       })
       .catch((err) => {
         console.error("Error loading PlatformGrid:", err)
-        // 返回一个回退组件
         return function FallbackComponent() {
           return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -46,7 +51,7 @@ const PlatformGrid = dynamic(
         <p className="text-xs text-muted-foreground">首次加载可能需要几秒钟</p>
       </div>
     ),
-    ssr: false, // 禁用SSR，避免水合不匹配问题
+    ssr: false,
   },
 )
 
@@ -55,16 +60,32 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState("")
   const [isLoaded, setIsLoaded] = useState(false)
   const { pageContainerWidth } = useAdaptiveGrid()
+  const { isMobile, isSmallScreen, isTouchDevice } = useMobile()
+  const mainRef = useRef<HTMLDivElement>(null)
 
-  // 添加状态管理搜索对话框和关键词分析对话框
+  // 添加状态管理
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false)
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null)
 
   // 处理刷新操作
-  const handleRefresh = () => {
-    // 这里可以添加刷新逻辑，如果需要的话
+  const handleRefresh = async () => {
+    // 添加触觉反馈（如果支持）
+    if (navigator.vibrate) {
+      navigator.vibrate(50)
+    }
+
+    // 记录刷新时间
+    setLastRefreshTime(new Date())
+
+    // 刷新页面
     window.location.reload()
   }
+
+  // 添加下拉刷新功能
+  const { containerRef, isPulling, pullDistance, isRefreshing } = usePullToRefresh({
+    onRefresh: handleRefresh,
+  })
 
   // 添加错误处理
   useEffect(() => {
@@ -84,20 +105,15 @@ export default function Home() {
     }
   }, [])
 
-  // 优化页面组件，提高响应速度
-
-  // 添加性能优化相关代码
+  // 性能优化
   useEffect(() => {
-    // 添加预加载API域名的逻辑，提前建立连接:
-    // 预加载关键资源
+    // 预连接到API域名
     const preloadResources = () => {
-      // 预连接到API域名
       const link = document.createElement("link")
       link.rel = "preconnect"
       link.href = "https://api-hot.imsyy.top"
       document.head.appendChild(link)
 
-      // 添加DNS预取
       const dnsPrefetch = document.createElement("link")
       dnsPrefetch.rel = "dns-prefetch"
       dnsPrefetch.href = "https://api-hot.imsyy.top"
@@ -106,23 +122,29 @@ export default function Home() {
 
     preloadResources()
 
-    // 添加性能监控
-    if (process.env.NODE_ENV === "development") {
-      console.log("Performance monitoring enabled in development mode")
-    }
-
     // 优化事件处理
     const optimizeEventHandling = () => {
-      // 添加passive标志以提高滚动性能
       document.addEventListener("touchstart", () => {}, { passive: true })
       document.addEventListener("touchmove", () => {}, { passive: true })
     }
 
     optimizeEventHandling()
 
-    // 清理函数
+    // 添加离线支持
+    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").then(
+          (registration) => {
+            console.log("ServiceWorker registration successful with scope: ", registration.scope)
+          },
+          (err) => {
+            console.log("ServiceWorker registration failed: ", err)
+          },
+        )
+      })
+    }
+
     return () => {
-      // 清理事件监听器
       document.removeEventListener("touchstart", () => {})
       document.removeEventListener("touchmove", () => {})
     }
@@ -163,16 +185,38 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" ref={containerRef}>
+      {/* 网络状态提示 */}
+      <NetworkStatus />
+
+      {/* 下拉刷新提示 - 仅在移动设备上显示 */}
+      {isMobile && (
+        <div
+          className="fixed top-0 left-0 right-0 z-40 bg-primary text-primary-foreground text-center text-sm py-1 transform -translate-y-full transition-transform duration-300"
+          style={{
+            transform: isPulling ? `translateY(${Math.min(pullDistance / 2, 50)}%)` : "translateY(-100%)",
+            opacity: isPulling ? Math.min(pullDistance / 80, 1) : 0,
+          }}
+        >
+          {isRefreshing ? "正在刷新..." : "下拉刷新"}
+        </div>
+      )}
+
       <main style={{ width: pageContainerWidth, margin: "0 auto", transition: "width 0.3s ease" }}>
         <div className="py-4 md:py-6">
           <ErrorBoundary>
-            <PlatformGrid />
+            <PlatformGrid
+              isMobile={isMobile}
+              searchDialogOpen={searchDialogOpen}
+              setSearchDialogOpen={setSearchDialogOpen}
+              analysisDialogOpen={analysisDialogOpen}
+              setAnalysisDialogOpen={setAnalysisDialogOpen}
+            />
           </ErrorBoundary>
         </div>
       </main>
 
-      <footer className="border-t py-4">
+      <footer className="border-t py-4 mb-16 md:mb-0">
         <div style={{ width: pageContainerWidth, margin: "0 auto", transition: "width 0.3s ease" }} className="px-4">
           <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
             <p className="text-center text-[10px] text-muted-foreground md:text-left">
@@ -189,8 +233,14 @@ export default function Home() {
               </a>
             </p>
           </div>
+          {lastRefreshTime && (
+            <p className="text-center text-[10px] text-muted-foreground mt-1">
+              最后更新: {lastRefreshTime.toLocaleTimeString()}
+            </p>
+          )}
         </div>
       </footer>
+
       {/* 移动端导航 */}
       <MobileNav
         onSearch={() => setSearchDialogOpen(true)}
